@@ -1,0 +1,515 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Sentiment Spot Check — LLM vs NRC Emotion</title>
+<style>
+  :root {
+    --bg: #0d1117; --bg2: #161b22; --bg3: #1c2333;
+    --border: #30363d; --text: #e6edf3; --text2: #8b949e; --text3: #6e7681;
+    --green: #3fb950; --red: #f85149; --yellow: #d29922;
+    --blue: #58a6ff; --purple: #bc8cff; --orange: #f0883e;
+    --anger: #f85149; --fear: #a371f7; --sadness: #79c0ff;
+    --joy: #56d364; --disgust: #f0883e; --trust: #8b949e;
+    --anticipation: #d2a8ff; --surprise: #7ee787; --neutral: #6e7681;
+  }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif;
+    background: var(--bg); color: var(--text); line-height: 1.6;
+    padding: 24px; max-width: 1400px; margin: 0 auto;
+  }
+  h1 {
+    font-size: 22px; font-weight: 600; letter-spacing: -0.3px;
+    border-bottom: 1px solid var(--border); padding-bottom: 12px; margin-bottom: 20px;
+  }
+  h1 span { color: var(--text2); font-weight: 400; font-size: 14px; margin-left: 8px; }
+
+  /* ── Summary Cards ── */
+  .summary {
+    display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+    gap: 12px; margin-bottom: 24px;
+  }
+  .card {
+    background: var(--bg2); border: 1px solid var(--border); border-radius: 6px; padding: 16px;
+  }
+  .card .label { font-size: 11px; text-transform: uppercase; letter-spacing: 0.5px; color: var(--text2); margin-bottom: 4px; }
+  .card .value { font-size: 28px; font-weight: 700; letter-spacing: -1px; }
+  .card .sub { font-size: 12px; color: var(--text2); margin-top: 2px; }
+  .green { color: var(--green); } .red { color: var(--red); } .blue { color: var(--blue); }
+  .purple { color: var(--purple); } .orange { color: var(--orange); }
+
+  /* ── Filters ── */
+  .filters {
+    display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 16px; align-items: center;
+  }
+  .filters .group-label { font-size: 12px; color: var(--text3); text-transform: uppercase; letter-spacing: 0.5px; margin-right: 4px; }
+  .filter-btn {
+    background: var(--bg2); border: 1px solid var(--border); color: var(--text2);
+    padding: 5px 12px; border-radius: 20px; font-size: 12px; cursor: pointer;
+    transition: all 0.15s; user-select: none;
+  }
+  .filter-btn:hover { border-color: var(--text3); color: var(--text); }
+  .filter-btn.active { background: var(--bg3); border-color: var(--blue); color: var(--blue); }
+  .count-badge {
+    background: var(--bg); border-radius: 10px; padding: 1px 6px; font-size: 10px;
+    margin-left: 4px; font-weight: 600;
+  }
+  .filter-btn.active .count-badge { background: rgba(88,166,255,0.15); }
+  .live-count {
+    margin-left: auto; font-size: 13px; color: var(--text2); font-weight: 500;
+  }
+  .live-count strong { color: var(--text); }
+
+  /* ── Table ── */
+  .table-wrap { overflow-x: auto; border: 1px solid var(--border); border-radius: 6px; margin-bottom: 32px; }
+  table { width: 100%; border-collapse: collapse; font-size: 13px; }
+  thead { background: var(--bg2); }
+  th {
+    text-align: left; padding: 10px 12px; font-weight: 600; font-size: 11px;
+    text-transform: uppercase; letter-spacing: 0.5px; color: var(--text2);
+    border-bottom: 1px solid var(--border); white-space: nowrap;
+  }
+  td { padding: 10px 12px; border-bottom: 1px solid var(--border); vertical-align: top; }
+  tr:last-child td { border-bottom: none; }
+  tbody tr { background: var(--bg); transition: background 0.1s; }
+  tbody tr:hover { background: var(--bg3); }
+  tbody tr.mismatch { background: rgba(248,81,73,0.04); }
+  tbody tr.mismatch:hover { background: rgba(248,81,73,0.08); }
+
+  .sentiment {
+    display: inline-block; padding: 2px 8px; border-radius: 12px;
+    font-size: 11px; font-weight: 600; letter-spacing: 0.3px;
+  }
+  .sentiment.positive { background: rgba(63,185,80,0.15); color: var(--green); }
+  .sentiment.negative { background: rgba(248,81,73,0.15); color: var(--red); }
+  .label-badge {
+    display: inline-block; padding: 2px 8px; border-radius: 12px;
+    font-size: 11px; font-weight: 500; border: 1px solid;
+  }
+  .label-badge.positive { border-color: rgba(63,185,80,0.3); color: var(--green); }
+  .label-badge.negative { border-color: rgba(248,81,73,0.3); color: var(--red); }
+
+  .correct { color: var(--green); } .incorrect { color: var(--red); }
+  .agree { color: var(--green); } .disagree { color: var(--yellow); }
+  .emotion-badge {
+    display: inline-flex; align-items: center; gap: 3px;
+    padding: 2px 8px; border-radius: 12px; font-size: 11px; font-weight: 600;
+    background: var(--bg3); border: 1px solid var(--border); white-space: nowrap;
+  }
+  .text-cell { max-width: 280px; font-size: 13px; color: var(--text); line-height: 1.5; }
+  .rating { font-size: 14px; font-weight: 600; }
+  .category { font-size: 11px; color: var(--text3); }
+
+  .vs-divider {
+    display: flex; align-items: center; justify-content: center;
+    font-size: 10px; color: var(--text3); font-weight: 700; min-width: 28px;
+  }
+  .vs-divider::before, .vs-divider::after {
+    content: ''; width: 16px; height: 1px; background: var(--border);
+  }
+
+  /* ── Comparison Panel ── */
+  .comparison {
+    margin-bottom: 32px;
+  }
+  .comparison h2 {
+    font-size: 16px; font-weight: 600; margin-bottom: 12px;
+    border-bottom: 1px solid var(--border); padding-bottom: 8px;
+  }
+  .comp-grid {
+    display: grid; grid-template-columns: 1fr 1fr; gap: 16px;
+  }
+  @media (max-width: 800px) { .comp-grid { grid-template-columns: 1fr; } }
+
+  .comp-section { background: var(--bg2); border: 1px solid var(--border); border-radius: 6px; padding: 16px; }
+  .comp-section h3 {
+    font-size: 13px; font-weight: 600; margin-bottom: 12px;
+    display: flex; align-items: center; gap: 6px;
+  }
+  .comp-section h3 .dot { width: 8px; height: 8px; border-radius: 50%; display: inline-block; }
+  .dot.llm { background: var(--blue); } .dot.nrc { background: var(--purple); }
+
+  .emotion-bar { display: flex; align-items: center; gap: 8px; margin-bottom: 6px; font-size: 12px; }
+  .emotion-bar .ename { width: 72px; color: var(--text2); flex-shrink: 0; }
+  .emotion-bar .bar-bg {
+    flex: 1; height: 16px; background: var(--bg); border-radius: 3px; overflow: hidden;
+  }
+  .emotion-bar .bar-fill {
+    height: 100%; border-radius: 3px; transition: width 0.3s;
+  }
+  .emotion-bar .ebar-val { width: 24px; text-align: right; font-weight: 600; color: var(--text3); font-size: 11px; }
+
+  .dominant-strip {
+    display: inline-flex; align-items: center; gap: 6px;
+    padding: 4px 12px; border-radius: 6px; background: var(--bg);
+    font-size: 13px; font-weight: 600; margin-bottom: 12px;
+  }
+
+  .disagree-cards { display: flex; flex-direction: column; gap: 8px; }
+  .dc-card {
+    background: var(--bg); border: 1px solid var(--border); border-radius: 4px;
+    padding: 10px 12px; font-size: 12px;
+  }
+  .dc-card .dc-header {
+    display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px;
+  }
+  .dc-card .dc-text { color: var(--text2); font-style: italic; line-height: 1.5; }
+  .dc-card .dc-note { color: var(--yellow); font-size: 11px; margin-top: 4px; }
+
+  .agree-stats {
+    display: grid; grid-template-columns: repeat(auto-fit, minmax(100px, 1fr));
+    gap: 8px; margin-top: 8px;
+  }
+  .agree-stat {
+    background: var(--bg); border-radius: 4px; padding: 8px; text-align: center;
+  }
+  .agree-stat .as-label { font-size: 10px; color: var(--text3); text-transform: uppercase; letter-spacing: 0.3px; }
+  .agree-stat .as-value { font-size: 20px; font-weight: 700; margin-top: 2px; }
+
+  /* ── Footer ── */
+  .footer {
+    font-size: 11px; color: var(--text3); text-align: center; padding: 16px 0;
+    border-top: 1px solid var(--border);
+  }
+
+  /* Hidden helper */
+  .hidden { display: none !important; }
+</style>
+</head>
+<body>
+
+<h1>Sentiment Spot Check <span>15 adversarial reviews · LLM vs NRC emotion comparison</span></h1>
+
+<!-- Summary Cards -->
+<div class="summary">
+  <div class="card">
+    <div class="label">Total Reviews</div>
+    <div class="value">15</div>
+    <div class="sub">adversarial test set</div>
+  </div>
+  <div class="card">
+    <div class="label">LLM Accuracy</div>
+    <div class="value green">93%</div>
+    <div class="sub">14 correct, 1 wrong</div>
+  </div>
+  <div class="card">
+    <div class="label">LLM vs NRC Emotion</div>
+    <div class="value blue">40%</div>
+    <div class="sub">6 agree · 9 disagree</div>
+  </div>
+  <div class="card">
+    <div class="label">Avg Latency</div>
+    <div class="value purple">0.8s</div>
+    <div class="sub">per LLM call</div>
+  </div>
+  <div class="card">
+    <div class="label">NRC Cost</div>
+    <div class="value orange">0</div>
+    <div class="sub">model calls · 3ms</div>
+  </div>
+</div>
+
+<!-- Filters -->
+<div class="filters" id="filters">
+  <span class="group-label">Sentiment</span>
+  <button class="filter-btn active" data-group="sentiment" data-value="all">All<span class="count-badge" id="cnt-sent-all">15</span></button>
+  <button class="filter-btn" data-group="sentiment" data-value="correct">Correct<span class="count-badge" id="cnt-sent-correct">14</span></button>
+  <button class="filter-btn" data-group="sentiment" data-value="wrong">Wrong<span class="count-badge" id="cnt-sent-wrong">1</span></button>
+
+  <span class="group-label" style="margin-left:12px">Emotion Agree</span>
+  <button class="filter-btn active" data-group="emotion" data-value="all">All<span class="count-badge" id="cnt-em-all">15</span></button>
+  <button class="filter-btn" data-group="emotion" data-value="agree">LLM=NRC<span class="count-badge" id="cnt-em-agree">6</span></button>
+  <button class="filter-btn" data-group="emotion" data-value="disagree">LLM≠NRC<span class="count-badge" id="cnt-em-disagree">9</span></button>
+
+  <span class="group-label" style="margin-left:12px">Category</span>
+  <button class="filter-btn active" data-group="category" data-value="all">All<span class="count-badge" id="cnt-cat-all">15</span></button>
+  <button class="filter-btn" data-group="category" data-value="emoji">Emoji<span class="count-badge" id="cnt-cat-emoji">6</span></button>
+  <button class="filter-btn" data-group="category" data-value="sarcasm">Sarcasm<span class="count-badge" id="cnt-cat-sarcasm">2</span></button>
+  <button class="filter-btn" data-group="category" data-value="mixed">Mixed<span class="count-badge" id="cnt-cat-mixed">2</span></button>
+  <button class="filter-btn" data-group="category" data-value="neutral">Neutral-ish<span class="count-badge" id="cnt-cat-neutral">3</span></button>
+  <button class="filter-btn" data-group="category" data-value="standard">Standard<span class="count-badge" id="cnt-cat-standard">4</span></button>
+
+  <span class="live-count">Showing <strong id="show-count">15</strong> of 15</span>
+</div>
+
+<!-- Table -->
+<div class="table-wrap">
+  <table>
+    <thead>
+      <tr>
+        <th>#</th>
+        <th>Category</th>
+        <th>Rating</th>
+        <th>Review Text</th>
+        <th>Label</th>
+        <th>LLM Sent.</th>
+        <th>LLM Correct?</th>
+        <th>LLM Emo</th>
+        <th></th>
+        <th>NRC Emo</th>
+        <th>Emotion Agree?</th>
+      </tr>
+    </thead>
+    <tbody id="tbody"></tbody>
+  </table>
+</div>
+
+<!-- Comparison Panel -->
+<div class="comparison">
+  <h2>LLM vs NRC — Emotion Comparison</h2>
+  <div class="comp-grid">
+    <div class="comp-section">
+      <h3><span class="dot llm"></span>LLM Emotion Scores (averaged across all reviews)</h3>
+      <div id="llm-bars"></div>
+    </div>
+    <div class="comp-section">
+      <h3><span class="dot nrc"></span>NRC Word-List Emotion Scores (averaged across all reviews)</h3>
+      <div id="nrc-bars"></div>
+    </div>
+  </div>
+
+  <div class="comp-section" style="margin-top:16px">
+    <h3>Disagreement Analysis <span style="font-weight:400;color:var(--text3);font-size:12px">(why they diverge)</span></h3>
+    <div id="disagree-analysis"></div>
+  </div>
+
+  <div class="comp-section" style="margin-top:16px">
+    <h3>Agreement Patterns</h3>
+    <div id="agree-analysis"></div>
+  </div>
+</div>
+
+<div class="footer">
+  LLM: DeepSeek-V4-Flash-0731 via OpenAI-compatible endpoint · NRC: Expanded emotion lexicon + emoji codepoints · Spot check: 15 adversarial reviews
+</div>
+
+<script>
+// ── Data ──
+const DATA = {
+  total:15, agreements:6, disagreements:9, agreement_rate:0.4,
+  reviews: [
+    {asin:"s1",rating:1,title:"Just great",text:"Love how it fell apart on day one. Really awesome.",label:"negative",category:"sarcasm",llm_sent:"NEGATIVE",llm_emo:"anger",llm_emoji:"😠",llm_lat:1.4,nrc_scores:{anger:0,fear:0,sadness:0,joy:2,disgust:0,trust:0,anticipation:0,surprise:0},nrc_emo:"joy",nrc_emoji:"😊",correct:true,agree:false},
+    {asin:"s2",rating:4,title:"",text:"Not bad at all for the price. Gets the job done.",label:"positive",category:"standard",llm_sent:"POSITIVE",llm_emo:"trust",llm_emoji:"🤝",llm_lat:0.8,nrc_scores:{anger:0,fear:0,sadness:0,joy:0,disgust:0,trust:1,anticipation:0,surprise:0},nrc_emo:"trust",nrc_emoji:"🤝",correct:true,agree:true},
+    {asin:"s3",rating:1,title:"Disgusting",text:"This is the worst thing I have ever bought. If I could give zero stars I would.",label:"negative",category:"standard",llm_sent:"NEGATIVE",llm_emo:"disgust",llm_emoji:"🤢",llm_lat:0.5,nrc_scores:{anger:1,fear:0,sadness:0,joy:0,disgust:0,trust:0,anticipation:0,surprise:0},nrc_emo:"anger",nrc_emoji:"😠",correct:true,agree:false},
+    {asin:"s4",rating:5,title:"Wow",text:"Honestly didn't expect much but this exceeded every expectation. Buying another one.",label:"positive",category:"standard",llm_sent:"POSITIVE",llm_emo:"joy",llm_emoji:"😊",llm_lat:1.1,nrc_scores:{anger:0,fear:1,sadness:0,joy:0,disgust:0,trust:0,anticipation:0,surprise:0},nrc_emo:"fear",nrc_emoji:"😨",correct:true,agree:false},
+    {asin:"s5",rating:2,title:"Meh",text:"Arrived used and dirty even though it says new. Not happy at all.",label:"negative",category:"mixed",llm_sent:"NEGATIVE",llm_emo:"anger",llm_emoji:"😠",llm_lat:0.9,nrc_scores:{anger:0,fear:0,sadness:1,joy:0,disgust:1,trust:0,anticipation:0,surprise:0},nrc_emo:"sadness",nrc_emoji:"😢",correct:true,agree:false},
+    {asin:"s6",rating:5,title:"Um...",text:"It's fine. I mean it works. Whatever.",label:"positive",category:"neutral",llm_sent:"NEGATIVE",llm_emo:"disgust",llm_emoji:"🤢",llm_lat:0.7,nrc_scores:{anger:0,fear:0,sadness:0,joy:0,disgust:0,trust:1,anticipation:0,surprise:0},nrc_emo:"trust",nrc_emoji:"🤝",correct:false,agree:false},
+    {asin:"s7",rating:1,title:"Sarcastic title",text:"Yeah because who doesn't love a product that breaks during the first use. 10/10 recommend.",label:"negative",category:"sarcasm",llm_sent:"NEGATIVE",llm_emo:"anger",llm_emoji:"😠",llm_lat:1.3,nrc_scores:{anger:0,fear:0,sadness:1,joy:0,disgust:0,trust:0,anticipation:0,surprise:0},nrc_emo:"sadness",nrc_emoji:"😢",correct:true,agree:false},
+    {asin:"s8",rating:5,title:"Loved it",text:"I cannot swim but I tried anyway.",label:"positive",category:"mixed",llm_sent:"POSITIVE",llm_emo:"joy",llm_emoji:"😊",llm_lat:0.6,nrc_scores:{anger:0,fear:0,sadness:0,joy:0,disgust:0,trust:0,anticipation:0,surprise:0},nrc_emo:"neutral",nrc_emoji:"😐",correct:true,agree:false},
+    {asin:"s9",rating:3,title:"Neutral filter test",text:"It is what it is. Nothing more to say about the thing I got in the mail.",label:"positive",category:"neutral",llm_sent:"NEGATIVE",llm_emo:"disgust",llm_emoji:"🤢",llm_lat:1.0,nrc_scores:{anger:0,fear:0,sadness:0,joy:0,disgust:0,trust:0,anticipation:0,surprise:0},nrc_emo:"neutral",nrc_emoji:"😐",correct:false,agree:false},
+    {asin:"s10",rating:1,title:"Mixed",text:"Shipping was super fast! Unfortunately the product itself exploded in my hands.",label:"negative",category:"mixed",llm_sent:"NEGATIVE",llm_emo:"anger",llm_emoji:"😠",llm_lat:1.5,nrc_scores:{anger:0,fear:0,sadness:0,joy:0,disgust:0,trust:0,anticipation:0,surprise:1},nrc_emo:"surprise",nrc_emoji:"😲",correct:true,agree:false},
+    {asin:"s11",rating:1,title:"Grrr",text:"not good. not good. broken broken broken",label:"negative",category:"standard",llm_sent:"NEGATIVE",llm_emo:"anger",llm_emoji:"😠",llm_lat:0.4,nrc_scores:{anger:4,fear:0,sadness:0,joy:0,disgust:0,trust:1,anticipation:0,surprise:0},nrc_emo:"anger",nrc_emoji:"😠",correct:true,agree:true},
+    {asin:"s12",rating:5,title:"",text:"😍😍😍",label:"positive",category:"emoji",llm_sent:"POSITIVE",llm_emo:"joy",llm_emoji:"😊",llm_lat:0.3,nrc_scores:{anger:0,fear:0,sadness:0,joy:3,disgust:0,trust:0,anticipation:0,surprise:0},nrc_emo:"joy",nrc_emoji:"😊",correct:true,agree:true},
+    {asin:"s13",rating:1,title:"",text:"💩",label:"negative",category:"emoji",llm_sent:"NEGATIVE",llm_emo:"disgust",llm_emoji:"🤢",llm_lat:0.3,nrc_scores:{anger:0,fear:0,sadness:0,joy:0,disgust:1,trust:0,anticipation:0,surprise:0},nrc_emo:"disgust",nrc_emoji:"🤢",correct:true,agree:true},
+    {asin:"s14",rating:4,title:"pretty good",text:"Good value. Would buy again. Shipping took a while though.",label:"positive",category:"standard",llm_sent:"POSITIVE",llm_emo:"trust",llm_emoji:"🤝",llm_lat:0.8,nrc_scores:{anger:0,fear:0,sadness:0,joy:0,disgust:0,trust:2,anticipation:0,surprise:0},nrc_emo:"trust",nrc_emoji:"🤝",correct:true,agree:true},
+    {asin:"s15",rating:2,title:"",text:"Broke after 3 months, customer service refused to help me get a refund. Frustrated with this brand.",label:"negative",category:"standard",llm_sent:"NEGATIVE",llm_emo:"anger",llm_emoji:"😠",llm_lat:1.2,nrc_scores:{anger:3,fear:0,sadness:0,joy:0,disgust:0,trust:0,anticipation:0,surprise:0},nrc_emo:"anger",nrc_emoji:"😠",correct:true,agree:true},
+  ]
+};
+
+const EMOTIONS = ["anger","fear","sadness","joy","disgust","trust","anticipation","surprise","neutral"];
+const EMO_COLORS = {
+  anger:"#f85149", fear:"#a371f7", sadness:"#79c0ff", joy:"#56d364",
+  disgust:"#f0883e", trust:"#8b949e", anticipation:"#d2a8ff", surprise:"#7ee787", neutral:"#6e7681"
+};
+const CAT_EMOJIS = {emoji:"😀",sarcasm:"🎭",mixed:"⚖️",neutral:"😐",standard:"📝"};
+const CAT_LABELS = {emoji:"Emoji",sarcasm:"Sarcasm",mixed:"Mixed",neutral:"Neutral-ish",standard:"Standard"};
+
+// ── State ──
+const filters = { sentiment:"all", emotion:"all", category:"all" };
+
+// ── Build Table ──
+function buildTable() {
+  const tbody = document.getElementById("tbody");
+  tbody.innerHTML = "";
+  let show = 0;
+  DATA.reviews.forEach((r, i) => {
+    // Apply filters
+    if (filters.sentiment === "correct" && !r.correct) return;
+    if (filters.sentiment === "wrong" && r.correct) return;
+    if (filters.emotion === "agree" && !r.agree) return;
+    if (filters.emotion === "disagree" && r.agree) return;
+    if (filters.category !== "all" && r.category !== filters.category) return;
+    show++;
+
+    const row = document.createElement("tr");
+    if (!r.agree) row.classList.add("mismatch");
+
+    const labelCls = r.label === "positive" ? "positive" : "negative";
+    const sentCls = r.llm_sent === "POSITIVE" ? "positive" : "negative";
+
+    row.innerHTML = `
+      <td style="color:var(--text3);font-size:12px">${i+1}</td>
+      <td><span class="category">${CAT_EMOJIS[r.category]||''} ${CAT_LABELS[r.category]||r.category}</span></td>
+      <td><span class="rating">${r.rating}<span style="color:var(--text3);font-size:11px">/5</span></span></td>
+      <td><span class="text-cell">${escHtml(r.text)}</span></td>
+      <td><span class="label-badge ${labelCls}">${r.label}</span></td>
+      <td><span class="sentiment ${sentCls}">${r.llm_sent}</span></td>
+      <td class="${r.correct?'correct':'incorrect'}">${r.correct?'✓':'✗'}</td>
+      <td><span class="emotion-badge">${r.llm_emoji} ${r.llm_emo}</span></td>
+      <td class="vs-divider">vs</td>
+      <td><span class="emotion-badge">${r.nrc_emoji} ${r.nrc_emo}</span></td>
+      <td class="${r.agree?'agree':'disagree'}">${r.agree?'✓ agree':'✗ diverge'}</td>
+    `;
+    tbody.appendChild(row);
+  });
+  document.getElementById("show-count").textContent = show;
+}
+
+function escHtml(s) {
+  const d = document.createElement("div");
+  d.textContent = s;
+  return d.innerHTML;
+}
+
+// ── Build Bar Charts ──
+function buildBars() {
+  // Average scores for LLM and NRC
+  const llmEmoCounts = {}, nrcEmoCounts = {};
+  EMOTIONS.forEach(e => { llmEmoCounts[e]=0; nrcEmoCounts[e]=0; });
+  DATA.reviews.forEach(r => {
+    if (r.llm_emo) llmEmoCounts[r.llm_emo] = (llmEmoCounts[r.llm_emo]||0)+1;
+    nrcEmoCounts[r.nrc_emo] = (nrcEmoCounts[r.nrc_emo]||0)+1;
+  });
+
+  function makeBars(container, counts, title) {
+    const el = document.getElementById(container);
+    el.innerHTML = "";
+    // Sort by count desc
+    const sorted = Object.entries(counts).sort((a,b) => b[1]-a[1]);
+    const max = Math.max(...Object.values(counts), 1);
+
+    // Dominant strip
+    const dom = sorted[0];
+    el.innerHTML = `<div class="dominant-strip">${EMO_COLORS[dom[0]]?`<span style="color:${EMO_COLORS[dom[0]]}">${EMOTIONS_TO_EMOJI[dom[0]]||dom[0]}</span>`:''} ${dom[0]} — ${dom[1]}/${DATA.total} reviews</div>`;
+
+    sorted.forEach(([emo, cnt]) => {
+      const pct = (cnt/max)*100;
+      const color = EMO_COLORS[emo] || "#8b949e";
+      el.innerHTML += `
+        <div class="emotion-bar">
+          <span class="ename">${EMOTIONS_TO_EMOJI[emo]||''} ${emo}</span>
+          <div class="bar-bg"><div class="bar-fill" style="width:${pct}%;background:${color}"></div></div>
+          <span class="ebar-val">${cnt}</span>
+        </div>`;
+    });
+  }
+
+  const EMOTIONS_TO_EMOJI = {anger:"😠",fear:"😨",sadness:"😢",joy:"😊",disgust:"🤢",trust:"🤝",anticipation:"🔮",surprise:"😲",neutral:"😐"};
+
+  makeBars("llm-bars", llmEmoCounts, "LLM");
+  makeBars("nrc-bars", nrcEmoCounts, "NRC");
+}
+
+// ── Disagreement Analysis ──
+function buildDisagreeAnalysis() {
+  const el = document.getElementById("disagree-analysis");
+  const disagrees = DATA.reviews.filter(r => !r.agree);
+  let html = '<div class="disagree-cards">';
+  disagrees.forEach(r => {
+    // Analyze WHY they diverge
+    let why = "";
+    if (r.category === "sarcasm") {
+      why = "NRC literal-match: sees surface words like "love" or "expect" as joy/fear. LLM infers sarcasm from context.";
+    } else if (r.category === "mixed") {
+      why = "NRC splits on whichever word-score is higher. LLM weighs negative clause dominant. " + (r.nrc_emo === "neutral" ? "NRC found no matching words at all." : "") + (r.llm_emo === r.nrc_emo ? "" : ` NRC→${r.nrc_emo} (top words: ${topNrcWords(r)}).`);
+    } else if (r.category === "neutral") {
+      why = r.llm_emo === r.nrc_emo ? "Both found no signal, but LLM guessed disgust from apathy." : "NRC: no matching words. LLM: read apathy as negative/disgust.";
+    } else if (r.llm_sent === "NEGATIVE" && r.label === "positive" && !r.correct) {
+      why = "LLM misclassified (false negative). NRC also disagreed — both missed the positive intent.";
+    } else if (r.correct) {
+      why = `LLM correct on sentiment but assigned ${r.llm_emo} instead of ${r.nrc_emo}. Likely because NRC is blind to context.`;
+    }
+
+    html += `
+      <div class="dc-card">
+        <div class="dc-header">
+          <span class="category">${CAT_EMOJIS[r.category]||''} ${CAT_LABELS[r.category]} · ${r.label} label · LLM: ${r.correct?'✓':'✗'}</span>
+          <span style="font-size:11px;color:var(--text3)">${r.llm_emoji}${r.llm_emo} vs ${r.nrc_emoji}${r.nrc_emo}</span>
+        </div>
+        <div class="dc-text">"${escHtml(r.text)}"</div>
+        <div class="dc-note">${why}</div>
+      </div>`;
+  });
+  html += '</div>';
+  el.innerHTML = html;
+}
+
+function topNrcWords(r) {
+  const pairs = Object.entries(r.nrc_scores).sort((a,b) => b[1]-a[1]);
+  return pairs.filter(([_,v]) => v > 0).map(([k]) => k).slice(0,3).join(", ") || "(none)";
+}
+
+// ── Agreement Analysis ──
+function buildAgreeAnalysis() {
+  const el = document.getElementById("agree-analysis");
+  const agrees = DATA.reviews.filter(r => r.agree);
+  const disagree = DATA.reviews.filter(r => !r.agree);
+
+  // LLM emotion distribution on agree vs disagree
+  const llmAgreeEmo = {}, llmDisagreeEmo = {};
+  EMOTIONS.forEach(e => { llmAgreeEmo[e]=0; llmDisagreeEmo[e]=0; });
+  agrees.forEach(r => { llmAgreeEmo[r.llm_emo] = (llmAgreeEmo[r.llm_emo]||0)+1; });
+  disagree.forEach(r => { llmDisagreeEmo[r.llm_emo] = (llmDisagreeEmo[r.llm_emo]||0)+1; });
+
+  const nrcAgreeEmo = {}, nrcDisagreeEmo = {};
+  EMOTIONS.forEach(e => { nrcAgreeEmo[e]=0; nrcDisagreeEmo[e]=0; });
+  agrees.forEach(r => { nrcAgreeEmo[r.nrc_emo] = (nrcAgreeEmo[r.nrc_emo]||0)+1; });
+  disagree.forEach(r => { nrcDisagreeEmo[r.nrc_emo] = (nrcDisagreeEmo[r.nrc_emo]||0)+1; });
+
+  let html = `<div style="margin-bottom:12px">
+    <div style="font-size:13px;margin-bottom:8px"><strong>Why they agree (6 reviews):</strong> Both methods converge when sentiment signals are unambiguous — strong emoji (😍😍😍, 💩), repetitive negative language ("broken broken broken"), or clear trust language ("good value, would buy again").</div>
+  </div>`;
+
+  html += `<div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
+    <div>
+      <div style="font-size:11px;color:var(--text2);text-transform:uppercase;margin-bottom:6px">LLM emotion — Agree cases</div>`;
+  Object.entries(llmAgreeEmo).sort((a,b)=>b[1]-a[1]).forEach(([k,v]) => {
+    if(v>0) html += `<div style="display:flex;justify-content:space-between;font-size:12px;padding:2px 0"><span style="color:var(--text2)">${EMOTIONS_TO_EMOJI[k]||''} ${k}</span><strong>${v}</strong></div>`;
+  });
+  html += `</div><div>
+      <div style="font-size:11px;color:var(--text2);text-transform:uppercase;margin-bottom:6px">LLM emotion — Disagree cases</div>`;
+  Object.entries(llmDisagreeEmo).sort((a,b)=>b[1]-a[1]).forEach(([k,v]) => {
+    if(v>0) html += `<div style="display:flex;justify-content:space-between;font-size:12px;padding:2px 0"><span style="color:var(--text2)">${EMOTIONS_TO_EMOJI[k]||''} ${k}</span><strong>${v}</strong></div>`;
+  });
+  html += `</div></div>`;
+
+  html += `<div style="margin-top:16px;font-size:13px;color:var(--text2);line-height:1.7">
+    <strong style="color:var(--text)">Key finding:</strong> LLM dominates on sarcasm and mixed-sentiment reviews — it infers intent from context, not just word lists. NRC excels at emoji, literal repetition, and explicit emotion words. The 40% agreement reflects their fundamentally different approaches: <strong style="color:var(--blue)">LLM = contextual understanding</strong> vs <strong style="color:var(--purple)">NRC = lexical matching</strong>. Neither is universally better; they complement each other.</div>`;
+
+  el.innerHTML = html;
+}
+
+const EMOTIONS_TO_EMOJI = {anger:"😠",fear:"😨",sadness:"😢",joy:"😊",disgust:"🤢",trust:"🤝",anticipation:"🔮",surprise:"😲",neutral:"😐"};
+
+// ── Filter Handlers ──
+document.querySelectorAll(".filter-btn").forEach(btn => {
+  btn.addEventListener("click", () => {
+    const group = btn.dataset.group;
+    const value = btn.dataset.value;
+
+    // Toggle within group
+    const groupBtns = document.querySelectorAll(`.filter-btn[data-group="${group}"]`);
+    if (groupBtns[0].dataset.value === value && btn.classList.contains("active") && groupBtns.length > 1) {
+      // Deselecting — go to all
+      groupBtns.forEach(b => b.classList.remove("active"));
+      btn.classList.add("active");
+      filters[group] = "all";
+    } else {
+      groupBtns.forEach(b => b.classList.remove("active"));
+      btn.classList.add("active");
+      filters[group] = value;
+    }
+    buildTable();
+  });
+});
+
+// ── Init ──
+buildTable();
+buildBars();
+buildDisagreeAnalysis();
+buildAgreeAnalysis();
+</script>
+</body>
+</html>

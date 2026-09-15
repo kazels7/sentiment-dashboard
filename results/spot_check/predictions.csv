@@ -1,0 +1,16 @@
+index,asin,label,title,text,prediction,raw,latency_s,category
+0,s1,negative,Just great,Love how it fell apart on day one. Really awesome.,negative,NEGATIVE,1.2,emoji
+1,s2,positive,,Not bad at all for the price. Gets the job done.,positive,POSITIVE,0.9,standard
+2,s3,negative,Disgusting,This is the worst thing I have ever bought. If I could give zero stars I would.,negative,NEGATIVE,0.5,standard
+3,s4,positive,Wow,Honestly didn't expect much but this exceeded every expectation. Buying another one.,positive,POSITIVE,0.6,emoji
+4,s5,negative,Meh,Arrived used and dirty even though it says new. Not happy at all.,negative,NEGATIVE,1.2,standard
+5,s6,positive,Um...,It's fine. I mean it works. Whatever.,positive,POSITIVE,1.6,neutral-ish
+6,s7,negative,Sarcastic title,Yeah because who doesn't love a product that breaks during the first use. 10/10 recommend.,negative,NEGATIVE,0.6,emoji
+7,s8,positive,Loved it,I cannot swim but I tried anyway.,positive,POSITIVE,0.6,emoji
+8,s9,positive,Neutral filter test,It is what it is. Nothing more to say about the thing I got in the mail.,negative,NEGATIVE,0.9,neutral-ish
+9,s10,negative,Mixed,Shipping was super fast! Unfortunately the product itself exploded in my hands.,negative,NEGATIVE,0.9,mixed
+10,s11,negative,Grrr,not good. not good. broken broken broken,negative,NEGATIVE,0.6,standard
+11,s12,positive,,😍😍😍,positive,POSITIVE,0.6,emoji
+12,s13,negative,,💩,negative,NEGATIVE,0.8,emoji
+13,s14,positive,pretty good,Good value. Would buy again. Shipping took a while though.,positive,POSITIVE,0.5,standard
+14,s15,negative,,"Broke after 3 months, customer service refused to help me get a refund. Frustrated with this brand.",negative,NEGATIVE,0.9,standard

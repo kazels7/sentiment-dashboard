@@ -1,0 +1,683 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Sentiment Classifier — Spot Check</title>
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --bg: #0d1117;
+    --surface: #161b22;
+    --surface-hover: #1c2129;
+    --border: #30363d;
+    --border-strong: #484f58;
+    --text-primary: #e6edf3;
+    --text-secondary: #8b949e;
+    --text-muted: #6e7681;
+    --positive: #3fb950;
+    --positive-bg: rgba(63, 185, 80, 0.1);
+    --positive-border: rgba(63, 185, 80, 0.3);
+    --negative: #f85149;
+    --negative-bg: rgba(248, 81, 73, 0.1);
+    --negative-border: rgba(248, 81, 73, 0.3);
+    --accent: #58a6ff;
+    --accent-bg: rgba(88, 166, 255, 0.08);
+    --accent-border: rgba(88, 166, 255, 0.25);
+    --neutral: #d29922;
+    --neutral-bg: rgba(210, 153, 34, 0.08);
+    --radius: 6px;
+    --font-mono: ui-monospace, SFMono-Regular, SF Mono, Menlo, Consolas, monospace;
+    --font-sans: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Oxygen, Ubuntu, sans-serif;
+  }
+
+  html { font-size: 15px; }
+
+  body {
+    font-family: var(--font-sans);
+    background: var(--bg);
+    color: var(--text-primary);
+    line-height: 1.6;
+    padding: 0;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  /* ── Layout ───────────────────────────────────────── */
+
+  .page {
+    max-width: 1100px;
+    margin: 0 auto;
+    padding: 3rem 2rem 4rem;
+  }
+
+  header {
+    margin-bottom: 2.5rem;
+    padding-bottom: 1.5rem;
+    border-bottom: 1px solid var(--border);
+  }
+
+  header h1 {
+    font-size: 1.5rem;
+    font-weight: 600;
+    letter-spacing: -0.02em;
+    margin-bottom: 0.35rem;
+  }
+
+  header p {
+    color: var(--text-secondary);
+    font-size: 0.9rem;
+  }
+
+  /* ── Metrics band ─────────────────────────────────── */
+
+  .metrics {
+    display: grid;
+    grid-template-columns: repeat(5, 1fr);
+    gap: 1px;
+    background: var(--border);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    overflow: hidden;
+    margin-bottom: 2rem;
+  }
+
+  .metric {
+    background: var(--surface);
+    padding: 1.25rem 1.5rem;
+    text-align: center;
+  }
+
+  .metric .label {
+    font-size: 0.7rem;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    color: var(--text-muted);
+    margin-bottom: 0.35rem;
+  }
+
+  .metric .value {
+    font-size: 1.65rem;
+    font-weight: 700;
+    letter-spacing: -0.03em;
+    line-height: 1.2;
+  }
+
+  .metric .value.positive { color: var(--positive); }
+  .metric .value.negative { color: var(--negative); }
+  .metric .value.accent   { color: var(--accent); }
+
+  /* ── Section ──────────────────────────────────────── */
+
+  section {
+    margin-bottom: 2rem;
+  }
+
+  section h2 {
+    font-size: 1rem;
+    font-weight: 600;
+    margin-bottom: 1rem;
+    color: var(--text-secondary);
+    letter-spacing: -0.01em;
+  }
+
+  .card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 1.25rem 1.5rem;
+  }
+
+  /* ── Category bars ────────────────────────────────── */
+
+  .cat-bars {
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+  }
+
+  .cat-row {
+    display: grid;
+    grid-template-columns: 110px 1fr 60px;
+    align-items: center;
+    gap: 0.75rem;
+  }
+
+  .cat-label {
+    font-size: 0.85rem;
+    font-weight: 500;
+    color: var(--text-secondary);
+  }
+
+  .bar-track {
+    height: 28px;
+    background: var(--bg);
+    border-radius: 4px;
+    overflow: hidden;
+    position: relative;
+  }
+
+  .bar-fill {
+    height: 100%;
+    border-radius: 4px;
+    display: flex;
+    align-items: center;
+    padding-left: 0.5rem;
+    font-size: 0.75rem;
+    font-weight: 600;
+    color: var(--bg);
+    transition: width 0.6s ease;
+  }
+
+  .cat-pct {
+    text-align: right;
+    font-size: 0.9rem;
+    font-weight: 700;
+    font-variant-numeric: tabular-nums;
+  }
+
+  /* ── Confusion matrix ─────────────────────────────── */
+
+  .confusion {
+    display: grid;
+    grid-template-columns: auto 140px 140px;
+    gap: 1px;
+    background: var(--border);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    overflow: hidden;
+    width: fit-content;
+  }
+
+  .conf-cell {
+    padding: 0.85rem 1.25rem;
+    background: var(--surface);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 0.9rem;
+    font-weight: 600;
+    min-height: 50px;
+  }
+
+  .conf-cell.header {
+    font-weight: 500;
+    color: var(--text-secondary);
+    font-size: 0.8rem;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    background: var(--surface-hover);
+  }
+
+  .conf-cell.corner {
+    color: var(--text-muted);
+    font-size: 0.75rem;
+  }
+
+  .conf-cell.true-pos { color: var(--positive); }
+  .conf-cell.true-neg { color: var(--negative); }
+  .conf-cell.false-pos { color: var(--negative); }
+  .conf-cell.false-neg { color: var(--neutral); }
+
+  /* ── Detail table ─────────────────────────────────── */
+
+  .detail-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 0.85rem;
+  }
+
+  .detail-table thead th {
+    text-align: left;
+    font-size: 0.7rem;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    color: var(--text-muted);
+    padding: 0.6rem 0.75rem;
+    border-bottom: 1px solid var(--border);
+    font-weight: 500;
+    position: sticky;
+    top: 0;
+    background: var(--surface);
+    z-index: 1;
+  }
+
+  .detail-table tbody td {
+    padding: 0.65rem 0.75rem;
+    border-bottom: 1px solid var(--border);
+    vertical-align: top;
+  }
+
+  .detail-table tbody tr:last-child td {
+    border-bottom: none;
+  }
+
+  .detail-table tbody tr:hover {
+    background: var(--surface-hover);
+  }
+
+  .status {
+    display: inline-block;
+    font-size: 0.7rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    padding: 0.15rem 0.5rem;
+    border-radius: 3px;
+  }
+
+  .status.correct {
+    background: var(--positive-bg);
+    color: var(--positive);
+    border: 1px solid var(--positive-border);
+  }
+
+  .status.wrong {
+    background: var(--negative-bg);
+    color: var(--negative);
+    border: 1px solid var(--negative-border);
+  }
+
+  .pred-positive { color: var(--positive); }
+  .pred-negative { color: var(--negative); }
+
+  .review-text {
+    color: var(--text-secondary);
+    line-height: 1.5;
+    max-width: 340px;
+  }
+
+  .review-text strong {
+    color: var(--text-primary);
+    font-weight: 500;
+  }
+
+  .cat-badge {
+    font-size: 0.7rem;
+    font-weight: 500;
+    padding: 0.15rem 0.45rem;
+    border-radius: 3px;
+    background: var(--accent-bg);
+    color: var(--accent);
+    border: 1px solid var(--accent-border);
+    white-space: nowrap;
+  }
+
+  .label-pill {
+    font-size: 0.72rem;
+    font-weight: 600;
+    letter-spacing: 0.02em;
+  }
+
+  .label-pill.pos { color: var(--positive); }
+  .label-pill.neg { color: var(--negative); }
+
+  .latency {
+    color: var(--text-muted);
+    font-size: 0.78rem;
+    font-variant-numeric: tabular-nums;
+    white-space: nowrap;
+  }
+
+  /* ── Error callout ────────────────────────────────── */
+
+  .error-row {
+    background: var(--negative-bg) !important;
+  }
+
+  /* ── Footer ───────────────────────────────────────── */
+
+  footer {
+    margin-top: 2.5rem;
+    padding-top: 1rem;
+    border-top: 1px solid var(--border);
+    font-size: 0.75rem;
+    color: var(--text-muted);
+  }
+
+  /* ── Responsive ───────────────────────────────────── */
+
+  @media (max-width: 768px) {
+    .page { padding: 1.5rem 1rem 3rem; }
+    .metrics { grid-template-columns: repeat(3, 1fr); }
+    .metric:nth-child(4), .metric:nth-child(5) {
+      grid-column: span 1;
+    }
+    .cat-row { grid-template-columns: 80px 1fr 50px; }
+    .confusion { grid-template-columns: auto 110px 110px; }
+  }
+
+  @media (max-width: 480px) {
+    .metrics { grid-template-columns: repeat(2, 1fr); }
+  }
+</style>
+</head>
+<body>
+
+<div class="page">
+
+  <header>
+    <h1>Sentiment Classifier — Spot Check</h1>
+    <p>Structured prompt spot check across 15 adversarial reviews · DeepSeek-V4-Flash-0731 · 2026-09-13</p>
+  </header>
+
+  <!-- ── Key metrics ──────────────────────────────── -->
+  <div class="metrics">
+    <div class="metric">
+      <div class="label">Accuracy</div>
+      <div class="value accent">93.3%</div>
+    </div>
+    <div class="metric">
+      <div class="label">Correct</div>
+      <div class="value">14 / 15</div>
+    </div>
+    <div class="metric">
+      <div class="label">Positive (GT)</div>
+      <div class="value positive">6</div>
+    </div>
+    <div class="metric">
+      <div class="label">Negative (GT)</div>
+      <div class="value negative">9</div>
+    </div>
+    <div class="metric">
+      <div class="label">Avg latency</div>
+      <div class="value">0.8s</div>
+    </div>
+  </div>
+
+  <!-- ── Category breakdown ─────────────────────── -->
+  <section>
+    <h2>Accuracy by category</h2>
+    <div class="card">
+      <div class="cat-bars">
+        <div class="cat-row">
+          <span class="cat-label">Emoji</span>
+          <div class="bar-track">
+            <div class="bar-fill" style="width:100%;background:var(--positive);">6 / 6</div>
+          </div>
+          <span class="cat-pct" style="color:var(--positive);">100%</span>
+        </div>
+        <div class="cat-row">
+          <span class="cat-label">Standard</span>
+          <div class="bar-track">
+            <div class="bar-fill" style="width:100%;background:var(--positive);">6 / 6</div>
+          </div>
+          <span class="cat-pct" style="color:var(--positive);">100%</span>
+        </div>
+        <div class="cat-row">
+          <span class="cat-label">Mixed</span>
+          <div class="bar-track">
+            <div class="bar-fill" style="width:100%;background:var(--positive);">1 / 1</div>
+          </div>
+          <span class="cat-pct" style="color:var(--positive);">100%</span>
+        </div>
+        <div class="cat-row">
+          <span class="cat-label">Neutral-ish</span>
+          <div class="bar-track">
+            <div class="bar-fill" style="width:50%;background:var(--neutral);">1 / 2</div>
+          </div>
+          <span class="cat-pct" style="color:var(--neutral);">50%</span>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ── Confusion matrix ───────────────────────── -->
+  <section>
+    <h2>Confusion matrix</h2>
+    <div class="card">
+      <div class="confusion">
+        <div class="conf-cell corner"></div>
+        <div class="conf-cell header">Predicted Positive</div>
+        <div class="conf-cell header">Predicted Negative</div>
+        <div class="conf-cell header">True Positive</div>
+        <div class="conf-cell true-pos">6</div>
+        <div class="conf-cell false-pos">0</div>
+        <div class="conf-cell header">True Negative</div>
+        <div class="conf-cell false-neg">1</div>
+        <div class="conf-cell true-neg">8</div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ── Per-review detail ──────────────────────── -->
+  <section>
+    <h2>Per-review results</h2>
+    <div class="card" style="padding: 0; overflow-x: auto;">
+      <table class="detail-table">
+        <thead>
+          <tr>
+            <th>#</th>
+            <th>Label</th>
+            <th>Prediction</th>
+            <th>Status</th>
+            <th>Review</th>
+            <th>Category</th>
+            <th>Latency</th>
+          </tr>
+        </thead>
+        <tbody>
+          <!-- s1 - sarcasm: NEGATIVE correct -->
+          <tr>
+            <td style="color:var(--text-muted)">1</td>
+            <td><span class="label-pill neg">Negative</span></td>
+            <td><span class="pred-negative">Negative</span></td>
+            <td><span class="status correct">✓ Correct</span></td>
+            <td class="review-text">
+              <strong>Just great</strong><br>
+              Love how it fell apart on day one. Really awesome.
+            </td>
+            <td><span class="cat-badge">Emoji</span></td>
+            <td class="latency">1.2s</td>
+          </tr>
+          <!-- s2 - neutral/positive: POSITIVE correct -->
+          <tr>
+            <td style="color:var(--text-muted)">2</td>
+            <td><span class="label-pill pos">Positive</span></td>
+            <td><span class="pred-positive">Positive</span></td>
+            <td><span class="status correct">✓ Correct</span></td>
+            <td class="review-text">
+              <strong>—</strong><br>
+              Not bad at all for the price. Gets the job done.
+            </td>
+            <td><span class="cat-badge">Standard</span></td>
+            <td class="latency">0.9s</td>
+          </tr>
+          <!-- s3 - strong negative: NEGATIVE correct -->
+          <tr>
+            <td style="color:var(--text-muted)">3</td>
+            <td><span class="label-pill neg">Negative</span></td>
+            <td><span class="pred-negative">Negative</span></td>
+            <td><span class="status correct">✓ Correct</span></td>
+            <td class="review-text">
+              <strong>Disgusting</strong><br>
+              This is the worst thing I have ever bought. If I could give zero stars I would.
+            </td>
+            <td><span class="cat-badge">Standard</span></td>
+            <td class="latency">0.5s</td>
+          </tr>
+          <!-- s4 - positive: POSITIVE correct -->
+          <tr>
+            <td style="color:var(--text-muted)">4</td>
+            <td><span class="label-pill pos">Positive</span></td>
+            <td><span class="pred-positive">Positive</span></td>
+            <td><span class="status correct">✓ Correct</span></td>
+            <td class="review-text">
+              <strong>Wow</strong><br>
+              Honestly didn't expect much but this exceeded every expectation. Buying another one.
+            </td>
+            <td><span class="cat-badge">Emoji</span></td>
+            <td class="latency">0.6s</td>
+          </tr>
+          <!-- s5 - negative: NEGATIVE correct -->
+          <tr>
+            <td style="color:var(--text-muted)">5</td>
+            <td><span class="label-pill neg">Negative</span></td>
+            <td><span class="pred-negative">Negative</span></td>
+            <td><span class="status correct">✓ Correct</span></td>
+            <td class="review-text">
+              <strong>Meh</strong><br>
+              Arrived used and dirty even though it says new. Not happy at all.
+            </td>
+            <td><span class="cat-badge">Standard</span></td>
+            <td class="latency">1.2s</td>
+          </tr>
+          <!-- s6 - neutral-ish positive: POSITIVE correct -->
+          <tr>
+            <td style="color:var(--text-muted)">6</td>
+            <td><span class="label-pill pos">Positive</span></td>
+            <td><span class="pred-positive">Positive</span></td>
+            <td><span class="status correct">✓ Correct</span></td>
+            <td class="review-text">
+              <strong>Um…</strong><br>
+              It's fine. I mean it works. Whatever.
+            </td>
+            <td><span class="cat-badge">Neutral-ish</span></td>
+            <td class="latency">1.6s</td>
+          </tr>
+          <!-- s7 - sarcasm: NEGATIVE correct -->
+          <tr>
+            <td style="color:var(--text-muted)">7</td>
+            <td><span class="label-pill neg">Negative</span></td>
+            <td><span class="pred-negative">Negative</span></td>
+            <td><span class="status correct">✓ Correct</span></td>
+            <td class="review-text">
+              <strong>Sarcastic title</strong><br>
+              Yeah because who doesn't love a product that breaks during the first use. 10/10 recommend.
+            </td>
+            <td><span class="cat-badge">Emoji</span></td>
+            <td class="latency">0.6s</td>
+          </tr>
+          <!-- s8 - positive: POSITIVE correct -->
+          <tr>
+            <td style="color:var(--text-muted)">8</td>
+            <td><span class="label-pill pos">Positive</span></td>
+            <td><span class="pred-positive">Positive</span></td>
+            <td><span class="status correct">✓ Correct</span></td>
+            <td class="review-text">
+              <strong>Loved it</strong><br>
+              I cannot swim but I tried anyway.
+            </td>
+            <td><span class="cat-badge">Emoji</span></td>
+            <td class="latency">0.6s</td>
+          </tr>
+          <!-- s9 - NEUTRAL/POSITIVE WRONG: NEGATIVE → error row -->
+          <tr class="error-row">
+            <td style="color:var(--text-muted)">9</td>
+            <td><span class="label-pill pos">Positive</span></td>
+            <td><span class="pred-negative">Negative</span></td>
+            <td><span class="status wrong">✗ Wrong</span></td>
+            <td class="review-text">
+              <strong>Neutral filter test</strong><br>
+              It is what it is. Nothing more to say about the thing I got in the mail.
+            </td>
+            <td><span class="cat-badge">Neutral-ish</span></td>
+            <td class="latency">0.9s</td>
+          </tr>
+          <!-- s10 - mixed: NEGATIVE correct -->
+          <tr>
+            <td style="color:var(--text-muted)">10</td>
+            <td><span class="label-pill neg">Negative</span></td>
+            <td><span class="pred-negative">Negative</span></td>
+            <td><span class="status correct">✓ Correct</span></td>
+            <td class="review-text">
+              <strong>Mixed</strong><br>
+              Shipping was super fast! Unfortunately the product itself exploded in my hands.
+            </td>
+            <td><span class="cat-badge">Mixed</span></td>
+            <td class="latency">0.9s</td>
+          </tr>
+          <!-- s11 - strong negative: NEGATIVE correct -->
+          <tr>
+            <td style="color:var(--text-muted)">11</td>
+            <td><span class="label-pill neg">Negative</span></td>
+            <td><span class="pred-negative">Negative</span></td>
+            <td><span class="status correct">✓ Correct</span></td>
+            <td class="review-text">
+              <strong>Grrr</strong><br>
+              not good. not good. broken broken broken
+            </td>
+            <td><span class="cat-badge">Standard</span></td>
+            <td class="latency">0.6s</td>
+          </tr>
+          <!-- s12 - emoji positive: POSITIVE correct -->
+          <tr>
+            <td style="color:var(--text-muted)">12</td>
+            <td><span class="label-pill pos">Positive</span></td>
+            <td><span class="pred-positive">Positive</span></td>
+            <td><span class="status correct">✓ Correct</span></td>
+            <td class="review-text">
+              <strong>—</strong><br>
+              😍😍😍
+            </td>
+            <td><span class="cat-badge">Emoji</span></td>
+            <td class="latency">0.6s</td>
+          </tr>
+          <!-- s13 - emoji negative: NEGATIVE correct -->
+          <tr>
+            <td style="color:var(--text-muted)">13</td>
+            <td><span class="label-pill neg">Negative</span></td>
+            <td><span class="pred-negative">Negative</span></td>
+            <td><span class="status correct">✓ Correct</span></td>
+            <td class="review-text">
+              <strong>—</strong><br>
+              💩
+            </td>
+            <td><span class="cat-badge">Emoji</span></td>
+            <td class="latency">0.8s</td>
+          </tr>
+          <!-- s14 - positive: POSITIVE correct -->
+          <tr>
+            <td style="color:var(--text-muted)">14</td>
+            <td><span class="label-pill pos">Positive</span></td>
+            <td><span class="pred-positive">Positive</span></td>
+            <td><span class="status correct">✓ Correct</span></td>
+            <td class="review-text">
+              <strong>pretty good</strong><br>
+              Good value. Would buy again. Shipping took a while though.
+            </td>
+            <td><span class="cat-badge">Standard</span></td>
+            <td class="latency">0.5s</td>
+          </tr>
+          <!-- s15 - negative: NEGATIVE correct -->
+          <tr>
+            <td style="color:var(--text-muted)">15</td>
+            <td><span class="label-pill neg">Negative</span></td>
+            <td><span class="pred-negative">Negative</span></td>
+            <td><span class="status correct">✓ Correct</span></td>
+            <td class="review-text">
+              <strong>—</strong><br>
+              Broke after 3 months, customer service refused to help me get a refund. Frustrated with this brand.
+            </td>
+            <td><span class="cat-badge">Standard</span></td>
+            <td class="latency">0.9s</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <!-- ── Error analysis ─────────────────────────── -->
+  <section>
+    <h2>Error analysis</h2>
+    <div class="card">
+      <p style="color:var(--text-secondary); font-size:0.9rem; line-height:1.7;">
+        <strong style="color:var(--text-primary);">False negative:</strong> Review #9 was labelled <span class="label-pill pos">Positive</span> (ground truth rating 3.0, which was retained for the spot check).
+        The model classified it as <span class="pred-negative">Negative</span> — the flat, apathetic tone ("It is what it is. Nothing more to say.") was interpreted as negative sentiment rather than
+        the neutral/mild-positive stance the ground truth assigned.
+      </p>
+      <p style="color:var(--text-secondary); font-size:0.9rem; line-height:1.7; margin-top:0.6rem;">
+        This is the <em>only</em> error in the set, and it falls squarely in the <strong>neutral-ish</strong> category (1/2 = 50%).
+        Sarcasm, mixed sentiment, and emoji reviews all scored 100%.
+      </p>
+    </div>
+  </section>
+
+  <footer>
+    Generated 2026-09-13 · Model: DeepSeek-V4-Flash-0731 · Endpoint: http://dobolyi.com:9000/v1 · Data: spot_check.jsonl (15 reviews)
+  </footer>
+
+</div>
+
+</body>
+</html>

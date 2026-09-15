@@ -1,0 +1,484 @@
+[
+  {
+    "index": 0,
+    "asin": "s1",
+    "rating": 0,
+    "label": "negative",
+    "title": "Just great",
+    "text": "Love how it fell apart on day one. Really awesome.",
+    "category": "sarcasm",
+    "llm_sentiment": "NEGATIVE",
+    "llm_emotion": "anger",
+    "llm_emotion_icon": "😠",
+    "nrc_sentiment": "NEGATIVE",
+    "nrc_emotion": "joy",
+    "nrc_emotion_icon": "😊",
+    "nrc_top_emotions": [
+      [
+        "joy",
+        2
+      ]
+    ],
+    "agreement": false,
+    "correct": true,
+    "latency_s": 1.19
+  },
+  {
+    "index": 1,
+    "asin": "s2",
+    "rating": 0,
+    "label": "positive",
+    "title": "",
+    "text": "Not bad at all for the price. Gets the job done.",
+    "category": "standard",
+    "llm_sentiment": "POSITIVE",
+    "llm_emotion": "joy",
+    "llm_emotion_icon": "😊",
+    "nrc_sentiment": "POSITIVE",
+    "nrc_emotion": "trust",
+    "nrc_emotion_icon": "🤝",
+    "nrc_top_emotions": [
+      [
+        "trust",
+        1
+      ]
+    ],
+    "agreement": false,
+    "correct": true,
+    "latency_s": 2.53
+  },
+  {
+    "index": 2,
+    "asin": "s3",
+    "rating": 0,
+    "label": "negative",
+    "title": "Disgusting",
+    "text": "This is the worst thing I have ever bought. If I could give zero stars I would.",
+    "category": "strong_neg",
+    "llm_sentiment": "NEGATIVE",
+    "llm_emotion": "disgust",
+    "llm_emotion_icon": "🤢",
+    "nrc_sentiment": "NEGATIVE",
+    "nrc_emotion": "anger",
+    "nrc_emotion_icon": "😠",
+    "nrc_top_emotions": [
+      [
+        "anger",
+        1
+      ]
+    ],
+    "agreement": false,
+    "correct": true,
+    "latency_s": 0.96
+  },
+  {
+    "index": 3,
+    "asin": "s4",
+    "rating": 0,
+    "label": "positive",
+    "title": "Wow",
+    "text": "Honestly didn't expect much but this exceeded every expectation. Buying another one.",
+    "category": "positive",
+    "llm_sentiment": "POSITIVE",
+    "llm_emotion": "joy",
+    "llm_emotion_icon": "😊",
+    "nrc_sentiment": "POSITIVE",
+    "nrc_emotion": "fear",
+    "nrc_emotion_icon": "😨",
+    "nrc_top_emotions": [
+      [
+        "fear",
+        1
+      ]
+    ],
+    "agreement": false,
+    "correct": true,
+    "latency_s": 0.82
+  },
+  {
+    "index": 4,
+    "asin": "s5",
+    "rating": 0,
+    "label": "negative",
+    "title": "Meh",
+    "text": "Arrived used and dirty even though it says new. Not happy at all.",
+    "category": "mixed",
+    "llm_sentiment": "NEGATIVE",
+    "llm_emotion": "anger",
+    "llm_emotion_icon": "😠",
+    "nrc_sentiment": "NEGATIVE",
+    "nrc_emotion": "sadness",
+    "nrc_emotion_icon": "😢",
+    "nrc_top_emotions": [
+      [
+        "sadness",
+        1
+      ],
+      [
+        "disgust",
+        1
+      ]
+    ],
+    "agreement": false,
+    "correct": true,
+    "latency_s": 0.92
+  },
+  {
+    "index": 5,
+    "asin": "s6",
+    "rating": 0,
+    "label": "positive",
+    "title": "Um...",
+    "text": "It's fine. I mean it works. Whatever.",
+    "category": "neutral_tone",
+    "llm_sentiment": "ERROR",
+    "llm_emotion": "error",
+    "llm_emotion_icon": "❌",
+    "nrc_sentiment": "ERROR",
+    "nrc_emotion": "trust",
+    "nrc_emotion_icon": "🤝",
+    "nrc_top_emotions": [
+      [
+        "trust",
+        1
+      ]
+    ],
+    "agreement": false,
+    "correct": false,
+    "latency_s": 7.17
+  },
+  {
+    "index": 6,
+    "asin": "s7",
+    "rating": 0,
+    "label": "negative",
+    "title": "Sarcastic title",
+    "text": "Yeah because who doesn't love a product that breaks during the first use. 10/10 recommend.",
+    "category": "sarcasm",
+    "llm_sentiment": "NEGATIVE",
+    "llm_emotion": "anger",
+    "llm_emotion_icon": "😠",
+    "nrc_sentiment": "NEGATIVE",
+    "nrc_emotion": "sadness",
+    "nrc_emotion_icon": "😢",
+    "nrc_top_emotions": [
+      [
+        "sadness",
+        1
+      ]
+    ],
+    "agreement": false,
+    "correct": true,
+    "latency_s": 0.82
+  },
+  {
+    "index": 7,
+    "asin": "s8",
+    "rating": 0,
+    "label": "positive",
+    "title": "Loved it",
+    "text": "I cannot swim but I tried anyway.",
+    "category": "quirky",
+    "llm_sentiment": "POSITIVE",
+    "llm_emotion": "joy",
+    "llm_emotion_icon": "😊",
+    "nrc_sentiment": "POSITIVE",
+    "nrc_emotion": "neutral",
+    "nrc_emotion_icon": "😐",
+    "nrc_top_emotions": [],
+    "agreement": false,
+    "correct": true,
+    "latency_s": 0.82
+  },
+  {
+    "index": 8,
+    "asin": "s9",
+    "rating": 0,
+    "label": "neutral",
+    "title": "Neutral filter test",
+    "text": "It is what it is. Nothing more to say about the thing I got in the mail.",
+    "category": "flat_neutral",
+    "llm_sentiment": "ERROR",
+    "llm_emotion": "error",
+    "llm_emotion_icon": "❌",
+    "nrc_sentiment": "ERROR",
+    "nrc_emotion": "neutral",
+    "nrc_emotion_icon": "😐",
+    "nrc_top_emotions": [],
+    "agreement": false,
+    "correct": false,
+    "latency_s": 2.87
+  },
+  {
+    "index": 9,
+    "asin": "s10",
+    "rating": 0,
+    "label": "negative",
+    "title": "Mixed",
+    "text": "Shipping was super fast! Unfortunately the product itself exploded in my hands.",
+    "category": "mixed",
+    "llm_sentiment": "NEGATIVE",
+    "llm_emotion": "surprise",
+    "llm_emotion_icon": "😲",
+    "nrc_sentiment": "NEGATIVE",
+    "nrc_emotion": "surprise",
+    "nrc_emotion_icon": "😲",
+    "nrc_top_emotions": [
+      [
+        "surprise",
+        1
+      ]
+    ],
+    "agreement": true,
+    "correct": true,
+    "latency_s": 1.44
+  },
+  {
+    "index": 10,
+    "asin": "s11",
+    "rating": 0,
+    "label": "negative",
+    "title": "Grrr",
+    "text": "not good. not good. broken broken broken",
+    "category": "repetition",
+    "llm_sentiment": "NEGATIVE",
+    "llm_emotion": "anger",
+    "llm_emotion_icon": "😠",
+    "nrc_sentiment": "NEGATIVE",
+    "nrc_emotion": "anger",
+    "nrc_emotion_icon": "😠",
+    "nrc_top_emotions": [
+      [
+        "anger",
+        4
+      ],
+      [
+        "trust",
+        1
+      ]
+    ],
+    "agreement": true,
+    "correct": true,
+    "latency_s": 0.92
+  },
+  {
+    "index": 11,
+    "asin": "s12",
+    "rating": 0,
+    "label": "positive",
+    "title": "",
+    "text": "😍😍😍",
+    "category": "emoji_pos",
+    "llm_sentiment": "POSITIVE",
+    "llm_emotion": "joy",
+    "llm_emotion_icon": "😊",
+    "nrc_sentiment": "POSITIVE",
+    "nrc_emotion": "joy",
+    "nrc_emotion_icon": "😊",
+    "nrc_top_emotions": [
+      [
+        "joy",
+        3
+      ]
+    ],
+    "agreement": true,
+    "correct": true,
+    "latency_s": 0.61
+  },
+  {
+    "index": 12,
+    "asin": "s13",
+    "rating": 0,
+    "label": "negative",
+    "title": "",
+    "text": "💩",
+    "category": "emoji_neg",
+    "llm_sentiment": "NEGATIVE",
+    "llm_emotion": "disgust",
+    "llm_emotion_icon": "🤢",
+    "nrc_sentiment": "NEGATIVE",
+    "nrc_emotion": "disgust",
+    "nrc_emotion_icon": "🤢",
+    "nrc_top_emotions": [
+      [
+        "disgust",
+        1
+      ]
+    ],
+    "agreement": true,
+    "correct": true,
+    "latency_s": 0.92
+  },
+  {
+    "index": 13,
+    "asin": "s14",
+    "rating": 0,
+    "label": "positive",
+    "title": "pretty good",
+    "text": "Good value. Would buy again. Shipping took a while though.",
+    "category": "balanced_pos",
+    "llm_sentiment": "POSITIVE",
+    "llm_emotion": "trust",
+    "llm_emotion_icon": "🤝",
+    "nrc_sentiment": "POSITIVE",
+    "nrc_emotion": "trust",
+    "nrc_emotion_icon": "🤝",
+    "nrc_top_emotions": [
+      [
+        "trust",
+        2
+      ]
+    ],
+    "agreement": true,
+    "correct": true,
+    "latency_s": 1.13
+  },
+  {
+    "index": 14,
+    "asin": "s15",
+    "rating": 0,
+    "label": "negative",
+    "title": "",
+    "text": "Broke after 3 months, customer service refused to help me get a refund. Frustrated with this brand.",
+    "category": "strong_neg",
+    "llm_sentiment": "NEGATIVE",
+    "llm_emotion": "anger",
+    "llm_emotion_icon": "😠",
+    "nrc_sentiment": "NEGATIVE",
+    "nrc_emotion": "anger",
+    "nrc_emotion_icon": "😠",
+    "nrc_top_emotions": [
+      [
+        "anger",
+        3
+      ]
+    ],
+    "agreement": true,
+    "correct": true,
+    "latency_s": 0.72
+  },
+  {
+    "index": 15,
+    "asin": "s16",
+    "rating": 0,
+    "label": "neutral",
+    "title": "So-so",
+    "text": "It works, I guess. Not amazing, not terrible. Just exists on my shelf.",
+    "category": "flat_neutral",
+    "llm_sentiment": "NEUTRAL",
+    "llm_emotion": "trust",
+    "llm_emotion_icon": "🤝",
+    "nrc_sentiment": "NEUTRAL",
+    "nrc_emotion": "sadness",
+    "nrc_emotion_icon": "😢",
+    "nrc_top_emotions": [
+      [
+        "sadness",
+        1
+      ],
+      [
+        "trust",
+        1
+      ]
+    ],
+    "agreement": false,
+    "correct": true,
+    "latency_s": 2.36
+  },
+  {
+    "index": 16,
+    "asin": "s17",
+    "rating": 0,
+    "label": "neutral",
+    "title": "Meh",
+    "text": "Decent for the price. Does what it's supposed to do. Nothing special.",
+    "category": "flat_neutral",
+    "llm_sentiment": "NEUTRAL",
+    "llm_emotion": "trust",
+    "llm_emotion_icon": "🤝",
+    "nrc_sentiment": "NEUTRAL",
+    "nrc_emotion": "trust",
+    "nrc_emotion_icon": "🤝",
+    "nrc_top_emotions": [
+      [
+        "trust",
+        1
+      ]
+    ],
+    "agreement": true,
+    "correct": true,
+    "latency_s": 1.97
+  },
+  {
+    "index": 17,
+    "asin": "s18",
+    "rating": 0,
+    "label": "neutral",
+    "title": "Okay",
+    "text": "The quality is okay. It arrived on time. I've seen better, worse.",
+    "category": "flat_neutral",
+    "llm_sentiment": "NEUTRAL",
+    "llm_emotion": "trust",
+    "llm_emotion_icon": "🤝",
+    "nrc_sentiment": "NEUTRAL",
+    "nrc_emotion": "trust",
+    "nrc_emotion_icon": "🤝",
+    "nrc_top_emotions": [
+      [
+        "trust",
+        1
+      ]
+    ],
+    "agreement": true,
+    "correct": true,
+    "latency_s": 2.33
+  },
+  {
+    "index": 18,
+    "asin": "s19",
+    "rating": 0,
+    "label": "positive",
+    "title": "Amazing!",
+    "text": "Best purchase I've made all year. Absolutely love it! Would recommend to everyone!",
+    "category": "strong_pos",
+    "llm_sentiment": "POSITIVE",
+    "llm_emotion": "joy",
+    "llm_emotion_icon": "😊",
+    "nrc_sentiment": "POSITIVE",
+    "nrc_emotion": "joy",
+    "nrc_emotion_icon": "😊",
+    "nrc_top_emotions": [
+      [
+        "joy",
+        2
+      ]
+    ],
+    "agreement": true,
+    "correct": true,
+    "latency_s": 0.72
+  },
+  {
+    "index": 19,
+    "asin": "s20",
+    "rating": 0,
+    "label": "negative",
+    "title": "Terrible",
+    "text": "Complete waste of money. Broke immediately. Never buying from this brand again.",
+    "category": "strong_neg",
+    "llm_sentiment": "NEGATIVE",
+    "llm_emotion": "anger",
+    "llm_emotion_icon": "😠",
+    "nrc_sentiment": "NEGATIVE",
+    "nrc_emotion": "anger",
+    "nrc_emotion_icon": "😠",
+    "nrc_top_emotions": [
+      [
+        "anger",
+        2
+      ]
+    ],
+    "agreement": true,
+    "correct": true,
+    "latency_s": 0.72
+  }
+]

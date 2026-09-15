@@ -1,0 +1,839 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Sentiment Classifier — 3-Class Dashboard</title>
+<style>
+:root {
+  --bg: #0d1117;
+  --bg-alt: #161b22;
+  --bg-card: #1c2128;
+  --border: #30363d;
+  --text: #e6edf3;
+  --text-dim: #8b949e;
+  --accent: #58a6ff;
+  --accent-dim: #1f6feb;
+  --green: #3fb950;
+  --green-dim: #238636;
+  --red: #f85149;
+  --red-dim: #da3633;
+  --yellow: #d29922;
+  --orange: #db6d28;
+  --purple: #bc8cff;
+  --cyan: #39d2c0;
+}
+* { margin:0; padding:0; box-sizing:border-box; }
+body {
+  background: var(--bg);
+  color: var(--text);
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif;
+  line-height: 1.5;
+  font-size: 14px;
+}
+.container { max-width: 1200px; margin: 0 auto; padding: 24px 16px; }
+h1 { font-size: 24px; font-weight: 600; margin-bottom: 4px; }
+h2 { font-size: 18px; font-weight: 600; margin-bottom: 12px; }
+h3 { font-size: 15px; font-weight: 600; margin-bottom: 8px; color: var(--text-dim); }
+.subtitle { color: var(--text-dim); font-size: 13px; margin-bottom: 24px; }
+
+/* Stat cards */
+.stats {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 12px;
+  margin-bottom: 32px;
+}
+.stat-card {
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 16px;
+}
+.stat-card .value {
+  font-size: 28px;
+  font-weight: 700;
+  letter-spacing: -1px;
+}
+.stat-card .label {
+  font-size: 12px;
+  color: var(--text-dim);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  margin-top: 4px;
+}
+.stat-card.positive .value { color: var(--green); }
+.stat-card.negative .value { color: var(--red); }
+.stat-card.neutral .value { color: var(--yellow); }
+.stat-card.accuracy .value { color: var(--accent); }
+
+/* Sections */
+section { margin-bottom: 40px; }
+
+/* Confusion matrix */
+.confusion-matrix {
+  display: inline-grid;
+  grid-template-columns: 80px 100px 100px 100px;
+  gap: 4px;
+  font-size: 13px;
+  margin-bottom: 16px;
+}
+.conf-header {
+  text-align: center;
+  font-weight: 600;
+  color: var(--text-dim);
+  font-size: 12px;
+  padding: 4px 8px;
+}
+.conf-header.top-left { text-align: left; }
+.conf-cell {
+  background: var(--bg-alt);
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  padding: 12px 16px;
+  text-align: center;
+  font-weight: 600;
+  font-size: 16px;
+}
+.conf-cell.diag { background: rgba(63, 185, 80, 0.15); border-color: var(--green); }
+.conf-cell.off { background: rgba(248, 81, 73, 0.1); border-color: var(--red); }
+.conf-label {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  padding-right: 12px;
+  font-weight: 600;
+  color: var(--text-dim);
+  font-size: 12px;
+}
+
+/* Per-class metrics */
+.per-class {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 12px;
+  margin-bottom: 24px;
+}
+.per-class-card {
+  background: var(--bg-alt);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 12px;
+}
+.per-class-card .cls-name {
+  font-size: 13px;
+  font-weight: 600;
+  margin-bottom: 8px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+.per-class-card .cls-name.pos { color: var(--green); }
+.per-class-card .cls-name.neu { color: var(--yellow); }
+.per-class-card .cls-name.neg { color: var(--red); }
+.per-class-card .metrics-row {
+  display: flex;
+  justify-content: space-between;
+  font-size: 12px;
+}
+.per-class-card .metrics-row span {
+  display: inline-block;
+  min-width: 60px;
+}
+.per-class-card .metrics-row .val { font-weight: 600; }
+.per-class-card .metrics-row .val.good { color: var(--green); }
+.per-class-card .metrics-row .val.bad { color: var(--red); }
+
+/* Bar chart (CSS-only) */
+.bar-chart {
+  display: flex;
+  align-items: flex-end;
+  gap: 8px;
+  height: 120px;
+  padding: 0 16px;
+  margin-bottom: 16px;
+  border-bottom: 1px solid var(--border);
+}
+.bar-col {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  min-width: 40px;
+}
+.bar {
+  width: 100%;
+  max-width: 60px;
+  border-radius: 4px 4px 0 0;
+  min-height: 2px;
+  transition: opacity 0.2s;
+}
+.bar:hover { opacity: 0.8; }
+.bar-label {
+  font-size: 11px;
+  color: var(--text-dim);
+  text-align: center;
+  white-space: nowrap;
+}
+.bar-value {
+  font-size: 11px;
+  font-weight: 600;
+}
+
+/* Rating distribution */
+.rating-distribution {
+  display: flex;
+  gap: 4px;
+  align-items: flex-end;
+  height: 80px;
+  padding: 0 8px;
+  margin-bottom: 16px;
+  border-bottom: 1px solid var(--border);
+}
+.rating-bar {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+}
+.rating-bar .bar {
+  width: 100%;
+  border-radius: 3px 3px 0 0;
+  min-height: 2px;
+}
+.rating-bar .label {
+  font-size: 10px;
+  color: var(--text-dim);
+}
+.rating-bar .count {
+  font-size: 10px;
+  font-weight: 600;
+}
+
+/* Filters */
+.filters {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-bottom: 16px;
+}
+.filter-group {
+  display: flex;
+  gap: 4px;
+}
+.filter-btn {
+  background: var(--bg-alt);
+  border: 1px solid var(--border);
+  color: var(--text-dim);
+  padding: 4px 12px;
+  border-radius: 4px;
+  font-size: 12px;
+  cursor: pointer;
+  transition: all 0.15s;
+}
+.filter-btn:hover { border-color: var(--accent); color: var(--text); }
+.filter-btn.active {
+  background: var(--accent-dim);
+  border-color: var(--accent);
+  color: white;
+}
+.filter-count {
+  display: inline-block;
+  margin-left: 4px;
+  opacity: 0.7;
+}
+
+/* Table */
+.table-wrapper {
+  overflow-x: auto;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  background: var(--bg-alt);
+}
+table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 12px;
+}
+thead {
+  background: var(--bg-card);
+  position: sticky;
+  top: 0;
+  z-index: 10;
+}
+th {
+  padding: 8px 12px;
+  text-align: left;
+  font-weight: 600;
+  color: var(--text-dim);
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  border-bottom: 1px solid var(--border);
+  white-space: nowrap;
+}
+td {
+  padding: 8px 12px;
+  border-bottom: 1px solid var(--border);
+  vertical-align: top;
+}
+tr:hover td { background: rgba(88, 166, 255, 0.05); }
+tr:last-child td { border-bottom: none; }
+.badge {
+  display: inline-block;
+  padding: 2px 6px;
+  border-radius: 3px;
+  font-size: 10px;
+  font-weight: 600;
+  text-transform: uppercase;
+}
+.badge.correct { background: rgba(63, 185, 80, 0.2); color: var(--green); }
+.badge.wrong { background: rgba(248, 81, 73, 0.2); color: var(--red); }
+.badge.pos { background: rgba(63, 185, 80, 0.15); color: var(--green); }
+.badge.neu { background: rgba(210, 153, 34, 0.2); color: var(--yellow); }
+.badge.neg { background: rgba(248, 81, 73, 0.15); color: var(--red); }
+.text-cell {
+  max-width: 280px;
+  white-space: pre-wrap;
+  font-size: 12px;
+  color: var(--text);
+}
+.row-count {
+  color: var(--text-dim);
+  font-size: 12px;
+  margin-bottom: 8px;
+}
+
+/* Emotion comparison */
+.emotion-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+  gap: 12px;
+  margin-top: 16px;
+}
+.emotion-card {
+  background: var(--bg-alt);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 12px;
+  font-size: 12px;
+}
+.emotion-card .review-text {
+  margin-bottom: 8px;
+  color: var(--text);
+  font-size: 12px;
+  line-height: 1.4;
+}
+.emotion-card .llm-emo {
+  color: var(--green);
+}
+.emotion-card .nrc-emo {
+  color: var(--yellow);
+}
+.emotion-card .agree { color: var(--green); }
+.emotion-card .disagree { color: var(--red); }
+.emotion-card .category {
+  font-size: 10px;
+  color: var(--text-dim);
+  margin-bottom: 4px;
+  text-transform: uppercase;
+}
+.emotion-legend {
+  display: flex;
+  gap: 16px;
+  margin-bottom: 16px;
+  font-size: 12px;
+}
+.emotion-legend span {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+.emotion-legend .dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+}
+
+/* Summary stats row */
+.summary-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 16px;
+  margin-bottom: 16px;
+  font-size: 13px;
+}
+.summary-item {
+  color: var(--text-dim);
+}
+.summary-item strong {
+  color: var(--text);
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+  .per-class { grid-template-columns: 1fr; }
+  .stats { grid-template-columns: repeat(2, 1fr); }
+  .emotion-grid { grid-template-columns: 1fr; }
+}
+</style>
+</head>
+<body>
+<div class="container">
+  <h1>Sentiment Classifier — 3-Class Evaluation</h1>
+  <p class="subtitle">Amazon Reviews '23 · Sports_and_Outdoors · DeepSeek-V4-Flash-0731 · 150 balanced reviews (50 POS / 50 NEU / 50 NEG)</p>
+
+  <!-- SUMMARY STATS -->
+  <section>
+    <h2>Overall Performance</h2>
+    <div class="stats">
+      <div class="stat-card accuracy">
+        <div class="value" id="accuracy-val">--</div>
+        <div class="label">Accuracy</div>
+      </div>
+      <div class="stat-card positive">
+        <div class="value" id="correct-val">--</div>
+        <div class="label">Correct</div>
+      </div>
+      <div class="stat-card negative">
+        <div class="value" id="wrong-val">--</div>
+        <div class="label">Wrong</div>
+      </div>
+      <div class="stat-card neutral">
+        <div class="value" id="macro-f1-val">--</div>
+        <div class="label">Macro F1</div>
+      </div>
+      <div class="stat-card neutral">
+        <div class="value" id="spot-accuracy-val">--</div>
+        <div class="label">Spot Check Accuracy</div>
+      </div>
+    </div>
+  </section>
+
+  <!-- CONFUSION MATRIX -->
+  <section>
+    <h2>Confusion Matrix</h2>
+    <div class="confusion-matrix" id="confusion-matrix"></div>
+    <div class="summary-row" id="confusion-summary"></div>
+  </section>
+
+  <!-- PER-CLASS METRICS -->
+  <section>
+    <h2>Per-Class Metrics</h2>
+    <div class="per-class" id="per-class"></div>
+  </section>
+
+  <!-- STAR DISTRIBUTION -->
+  <section>
+    <h2>Star Rating Distribution</h2>
+    <div class="rating-distribution" id="rating-dist"></div>
+    <div class="summary-row" id="rating-summary"></div>
+  </section>
+
+  <!-- CORRECTNESS BY CLASS (bar chart) -->
+  <section>
+    <h2>Correctness Rate by Class</h2>
+    <div class="bar-chart" id="correctness-chart"></div>
+  </section>
+
+  <!-- SPOT CHECK DETAILS -->
+  <section>
+    <h2>Emotion Comparison: LLM vs NRC Word List</h2>
+    <div class="emotion-legend">
+      <span><span class="dot" style="background:var(--green)"></span> Agreement</span>
+      <span><span class="dot" style="background:var(--red)"></span> Disagreement</span>
+    </div>
+    <div class="summary-row" id="emotion-summary"></div>
+    <div class="emotion-grid" id="emotion-grid"></div>
+  </section>
+
+  <!-- EXPLORABLE TABLE -->
+  <section>
+    <h2>Review Table</h2>
+    <div class="filters">
+      <div class="filter-group">
+        <button class="filter-btn active" data-filter="all">All <span class="filter-count" id="count-all"></span></button>
+        <button class="filter-btn" data-filter="correct">Correct <span class="filter-count" id="count-correct"></span></button>
+        <button class="filter-btn" data-filter="wrong">Wrong <span class="filter-count" id="count-wrong"></span></button>
+      </div>
+      <div class="filter-group">
+        <button class="filter-btn active" data-class="all">All Classes <span class="filter-count" id="count-classes"></span></button>
+        <button class="filter-btn" data-class="POSITIVE">POS <span class="filter-count" id="count-pos"></span></button>
+        <button class="filter-btn" data-class="NEUTRAL">NEU <span class="filter-count" id="count-neu"></span></button>
+        <button class="filter-btn" data-class="NEGATIVE">NEG <span class="filter-count" id="count-neg"></span></button>
+      </div>
+    </div>
+    <div class="row-count" id="row-count"></div>
+    <div class="table-wrapper">
+      <table>
+        <thead>
+          <tr>
+            <th>#</th>
+            <th>Class</th>
+            <th>Predicted</th>
+            <th>Correct</th>
+            <th>Emotion</th>
+            <th>Text</th>
+          </tr>
+        </thead>
+        <tbody id="review-table"></tbody>
+      </table>
+    </div>
+  </section>
+</div>
+
+<script>
+let fullData = [];
+let spotData = [];
+
+// Load data from JSON files
+async function load() {
+  const [metricsResp, predictionsResp, combinedResp] = await Promise.all([
+    fetch('../metrics.txt'),
+    fetch('../predictions.csv'),
+    fetch('./combined.json')
+  ]);
+
+  // Parse metrics.txt
+  const metricsText = await metricsResp.text();
+  const metrics = parseMetrics(metricsText);
+
+  // Parse predictions.csv
+  const predictionsText = await predictionsResp.text();
+  fullData = parseCSV(predictionsText);
+
+  // Load spot check
+  spotData = await combinedResp.json();
+
+  render(metrics, fullData, spotData);
+}
+
+function parseMetrics(text) {
+  const m = {};
+  const lines = text.trim().split('\n');
+  for (const line of lines) {
+    const trimmed = line.trim();
+    if (trimmed.startsWith('===')) continue;
+    if (trimmed.startsWith('---')) continue;
+    if (trimmed === '') continue;
+    
+    // Accuracy
+    if (trimmed.startsWith('Accuracy:')) {
+      const match = trimmed.match(/([\d.]+)%/);
+      if (match) m.accuracy = parseFloat(match[1]);
+      const accMatch = trimmed.match(/\((\d+)\/(\d+)\)/);
+      if (accMatch) { m.correct = parseInt(accMatch[1]); m.total = parseInt(accMatch[2]); }
+    }
+    // Also parse Total/Correct lines (no parentheses)
+    if (trimmed.startsWith('Total:')) {
+      const match = trimmed.match(/Total:\s+(\d+)/);
+      if (match && !m.total) m.total = parseInt(match[1]);
+    }
+    if (trimmed.startsWith('Correct:')) {
+      const match = trimmed.match(/Correct:\s+(\d+)/);
+      if (match) m.correct = parseInt(match[1]);
+    }
+    // Macro F1
+    if (trimmed.startsWith('Macro F1:')) {
+      const match = trimmed.match(/([\d.]+)%/);
+      if (match) m.macroF1 = parseFloat(match[1]);
+    }
+    // Per-class: "POSITIVE: P=93.6 R=93.6 F1=93.6 support=50"
+    if (/^(POSITIVE|NEUTRAL|NEGATIVE):/.test(trimmed)) {
+      const cls = trimmed.match(/^(POSITIVE|NEUTRAL|NEGATIVE):/)[1];
+      const pMatch = trimmed.match(/P=([\d.]+)/);
+      const rMatch = trimmed.match(/R=([\d.]+)/);
+      const fMatch = trimmed.match(/F1=([\d.]+)/);
+      const sMatch = trimmed.match(/support=(\d+)/);
+      if (!m.perClass) m.perClass = {};
+      m.perClass[cls] = {
+        precision: pMatch ? parseFloat(pMatch[1]) : 0,
+        recall: rMatch ? parseFloat(rMatch[1]) : 0,
+        f1: fMatch ? parseFloat(fMatch[1]) : 0,
+        support: sMatch ? parseInt(sMatch[1]) : 0
+      };
+    }
+    // Confusion matrix: "POSITIVE |     44       3       0"
+    if (/^(POSITIVE|NEUTRAL|NEGATIVE)\s+\|/.test(trimmed)) {
+      const cls = trimmed.match(/^(POSITIVE|NEUTRAL|NEGATIVE)/)[1];
+      const nums = trimmed.match(/\|(.+)/);
+      if (nums) {
+        const parts = nums[1].trim().split(/\s+/).map(s => parseInt(s));
+        if (!m.confusion) m.confusion = {};
+        m.confusion[cls] = {
+          POSITIVE: parts[0] || 0,
+          NEUTRAL: parts[1] || 0,
+          NEGATIVE: parts[2] || 0
+        };
+      }
+    }
+  }
+  return m;
+}
+
+function parseCSV(text) {
+  const lines = text.trim().split('\n');
+  const headers = lines[0].split(',');
+  // Handle CSV properly (quotes)
+  const rows = [];
+  for (let i = 1; i < lines.length; i++) {
+    const row = {};
+    // Simple CSV parse
+    const vals = [];
+    let current = '';
+    let inQuotes = false;
+    for (const ch of lines[i]) {
+      if (ch === '"') { inQuotes = !inQuotes; }
+      else if (ch === ',' && !inQuotes) { vals.push(current.trim()); current = ''; }
+      else { current += ch; }
+    }
+    vals.push(current.trim());
+    headers.forEach((h, idx) => { row[h.trim()] = vals[idx] || ''; });
+    rows.push(row);
+  }
+  return rows;
+}
+
+function render(metrics, data, spotData) {
+  // Stats
+  document.getElementById('accuracy-val').textContent = metrics.accuracy ? metrics.accuracy.toFixed(1) + '%' : '--';
+  document.getElementById('correct-val').textContent = metrics.correct || '--';
+  document.getElementById('wrong-val').textContent = (metrics.total - metrics.correct) || '--';
+  document.getElementById('macro-f1-val').textContent = metrics.macroF1 ? metrics.macroF1.toFixed(1) + '%' : '--';
+
+  // Spot check stats
+  const spotCorrect = spotData.filter(r => r.correct).length;
+  const spotTotal = spotData.length;
+  document.getElementById('spot-accuracy-val').textContent = spotTotal > 0 ? (spotCorrect / spotTotal * 100).toFixed(0) + '%' : '--';
+
+  // Confusion matrix
+  const cm = document.getElementById('confusion-matrix');
+  cm.innerHTML = `
+    <div class="conf-header top-left"></div>
+    <div class="conf-header">POS</div>
+    <div class="conf-header">NEU</div>
+    <div class="conf-header">NEG</div>
+  `;
+  const classes = ['POSITIVE', 'NEUTRAL', 'NEGATIVE'];
+  for (const cls of classes) {
+    cm.innerHTML += `<div class="conf-label">${cls.substring(0,3)}</div>`;
+    for (const pred of classes) {
+      const val = (metrics.confusion && metrics.confusion[cls] && metrics.confusion[cls][pred]) || 0;
+      const isDiag = cls === pred;
+      cm.innerHTML += `<div class="conf-cell ${isDiag ? 'diag' : 'off'}">${val}</div>`;
+    }
+  }
+
+  // Per-class
+  const perClassDiv = document.getElementById('per-class');
+  perClassDiv.innerHTML = '';
+  const clsColors = { POSITIVE: 'pos', NEUTRAL: 'neu', NEGATIVE: 'neg' };
+  const clsLabels = { POSITIVE: 'POSITIVE', NEUTRAL: 'NEUTRAL', NEGATIVE: 'NEGATIVE' };
+  for (const cls of classes) {
+    const m = metrics.perClass ? metrics.perClass[cls] : null;
+    if (!m) continue;
+    const clsColor = clsColors[cls];
+    perClassDiv.innerHTML += `
+      <div class="per-class-card">
+        <div class="cls-name ${clsColor}">${clsLabels[cls]} (n=${m.support})</div>
+        <div class="metrics-row">
+          <span>Precision: <span class="val ${m.precision >= 85 ? 'good' : 'bad'}">${m.precision.toFixed(1)}%</span></span>
+        </div>
+        <div class="metrics-row">
+          <span>Recall: <span class="val ${m.recall >= 85 ? 'good' : 'bad'}">${m.recall.toFixed(1)}%</span></span>
+        </div>
+        <div class="metrics-row">
+          <span>F1: <span class="val ${m.f1 >= 85 ? 'good' : 'bad'}">${m.f1.toFixed(1)}%</span></span>
+        </div>
+      </div>
+    `;
+  }
+
+  // Rating distribution
+  const ratings = {};
+  data.forEach(r => {
+    const rating = parseFloat(r.rating);
+    ratings[rating] = (ratings[rating] || 0) + 1;
+  });
+  const maxRating = Math.max(...Object.values(ratings), 1);
+  const ratingDist = document.getElementById('rating-dist');
+  ratingDist.innerHTML = '';
+  for (let star = 1; star <= 5; star++) {
+    const count = ratings[star] || 0;
+    const height = (count / maxRating) * 80;
+    let color = 'var(--text-dim)';
+    if (star >= 4) color = 'var(--green)';
+    else if (star === 3) color = 'var(--yellow)';
+    else if (star <= 2) color = 'var(--red)';
+    ratingDist.innerHTML += `
+      <div class="rating-bar">
+        <span class="count">${count}</span>
+        <div class="bar" style="height:${height}px;background:${color}"></div>
+        <span class="label">${star}★</span>
+      </div>
+    `;
+  }
+  const r1 = ratings[1] || 0;
+  const r2 = ratings[2] || 0;
+  const r3 = ratings[3] || 0;
+  const r4 = ratings[4] || 0;
+  const r5 = ratings[5] || 0;
+  document.getElementById('rating-summary').innerHTML = `
+    <span class="summary-item">1-2★ (NEG): <strong>${r1} + ${r2} = ${r1 + r2}</strong></span>
+    <span class="summary-item">3★ (NEU): <strong>${r3}</strong></span>
+    <span class="summary-item">4-5★ (POS): <strong>${r4} + ${r5} = ${r4 + r5}</strong></span>
+  `;
+
+  // Correctness by class (bar chart)
+  const chartDiv = document.getElementById('correctness-chart');
+  chartDiv.innerHTML = '';
+  for (const cls of classes) {
+    const clsData = data.filter(r => r.ground_truth_sentiment === cls);
+    const correctCount = clsData.filter(r => r.correct === 'True').length;
+    const rate = clsData.length > 0 ? (correctCount / clsData.length * 100) : 0;
+    const height = (rate / 100) * 100;
+    let color = 'var(--green)';
+    if (rate < 60) color = 'var(--red)';
+    else if (rate < 80) color = 'var(--yellow)';
+    chartDiv.innerHTML += `
+      <div class="bar-col">
+        <span class="bar-value">${correctCount}/${clsData.length} (${rate.toFixed(0)}%)</span>
+        <div class="bar" style="height:${height}px;background:${color}"></div>
+        <span class="bar-label">${cls.substring(0,3).toUpperCase()}</span>
+      </div>
+    `;
+  }
+
+  // Emotion comparison (spot check)
+  const spotCorrectCount = spotData.filter(r => r.correct).length;
+  const spotAgree = spotData.filter(r => r.agreement).length;
+  document.getElementById('emotion-summary').innerHTML = `
+    <span class="summary-item">Spot Check: <strong>${spotCorrectCount}/${spotData.length} (${(spotCorrectCount/spotData.length*100).toFixed(0)}%) correct</strong></span>
+    <span class="summary-item">LLM vs NRC agreement: <strong>${spotAgree}/${spotData.length} (${(spotAgree/spotData.length*100).toFixed(0)}%)</strong></span>
+  `;
+
+  const emotionGrid = document.getElementById('emotion-grid');
+  emotionGrid.innerHTML = '';
+  for (const r of spotData) {
+    const llmSent = r.llm_sentiment;
+    const nrcSent = r.nrc_sentiment;
+    const llmEmo = r.llm_emotion_icon + ' ' + r.llm_emotion;
+    const nrcEmo = r.nrc_emotion_icon + ' ' + r.nrc_emotion;
+    const agreeClass = r.agreement ? 'agree' : 'disagree';
+    const agreeText = r.agreement ? '✓ Agree' : '✗ Disagree';
+    const correctClass = r.correct ? 'correct' : 'wrong';
+
+    let nrcTopEmos = '';
+    if (r.nrc_top_emotions && r.nrc_top_emotions.length > 0) {
+      nrcTopEmos = '<div style="margin-top:4px;font-size:11px;color:var(--text-dim)">Top NRC: ' +
+        r.nrc_top_emotions.map(([e, s]) => `${e}(${s})`).join(', ') + '</div>';
+    }
+
+    emotionGrid.innerHTML += `
+      <div class="emotion-card">
+        <div class="category">${r.category || ''}</div>
+        <div class="review-text">${escapeHtml(r.text)}</div>
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px">
+          <span class="llm-emo">LLM: ${llmEmo}</span>
+          <span class="nrc-emo">NRC: ${nrcEmo}</span>
+        </div>
+        <div style="display:flex;justify-content:space-between;align-items:center">
+          <span class="${correctClass}" style="font-weight:600">${r.correct ? '✓ Correct' : '✗ Wrong'}</span>
+          <span class="${agreeClass}" style="font-weight:600">${agreeText}</span>
+        </div>
+        ${nrcTopEmos}
+      </div>
+    `;
+  }
+
+  // Filter counts
+  updateCounts();
+
+  // Table
+  updateTable(data, 'all', 'all');
+}
+
+function escapeHtml(text) {
+  const div = document.createElement('div');
+  div.textContent = text;
+  return div.innerHTML;
+}
+
+// Filter logic
+let currentFilter = 'all';
+let currentClass = 'all';
+
+function updateTable(data, filter, cls) {
+  let filtered = data;
+  if (filter === 'correct') filtered = filtered.filter(r => r.correct === 'True');
+  else if (filter === 'wrong') filtered = filtered.filter(r => r.correct === 'False');
+  if (cls !== 'all') filtered = filtered.filter(r => r.ground_truth_sentiment === cls);
+
+  const tbody = document.getElementById('review-table');
+  tbody.innerHTML = '';
+
+  filtered.forEach((r, idx) => {
+    const label = r.ground_truth_sentiment;
+    const pred = r.predicted_sentiment;
+    const correct = r.correct === 'True';
+    const emotion = r.emotion || '--';
+    const text = r.text || '';
+    const title = r.title || '';
+
+    tbody.innerHTML += `
+      <tr>
+        <td style="color:var(--text-dim)">${r.index}</td>
+        <td><span class="badge ${label.toLowerCase()}">${label}</span></td>
+        <td><span class="badge ${correct ? 'correct' : 'wrong'}">${pred}</span></td>
+        <td><span class="badge ${correct ? 'correct' : 'wrong'}">${correct ? '✓' : '✗'}</span></td>
+        <td style="color:var(--text-dim)">${emotion}</td>
+        <td class="text-cell">${escapeHtml(title + '\n' + text)}</td>
+      </tr>
+    `;
+  });
+
+  document.getElementById('row-count').textContent = `Showing ${filtered.length} of ${data.length} reviews`;
+}
+
+// Filter buttons
+document.querySelectorAll('.filter-btn[data-filter]').forEach(btn => {
+  btn.addEventListener('click', () => {
+    document.querySelectorAll('.filter-btn[data-filter]').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    currentFilter = btn.dataset.filter;
+    updateTable(fullData, currentFilter, currentClass);
+  });
+});
+
+document.querySelectorAll('.filter-btn[data-class]').forEach(btn => {
+  btn.addEventListener('click', () => {
+    document.querySelectorAll('.filter-btn[data-class]').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    currentClass = btn.dataset.class;
+    updateTable(fullData, currentFilter, currentClass);
+  });
+});
+
+// Update filter counts
+function updateCounts() {
+  const correct = fullData.filter(r => r.correct === 'True').length;
+  const wrong = fullData.filter(r => r.correct === 'False').length;
+  const pos = fullData.filter(r => r.ground_truth_sentiment === 'POSITIVE').length;
+  const neu = fullData.filter(r => r.ground_truth_sentiment === 'NEUTRAL').length;
+  const neg = fullData.filter(r => r.ground_truth_sentiment === 'NEGATIVE').length;
+
+  document.getElementById('count-all').textContent = fullData.length;
+  document.getElementById('count-correct').textContent = correct;
+  document.getElementById('count-wrong').textContent = wrong;
+  document.getElementById('count-classes').textContent = fullData.length;
+  document.getElementById('count-pos').textContent = pos;
+  document.getElementById('count-neu').textContent = neu;
+  document.getElementById('count-neg').textContent = neg;
+}
+
+// Initialize
+load();
+</script>
+</body>
+</html>

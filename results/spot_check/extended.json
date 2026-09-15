@@ -1,0 +1,167 @@
+[
+  {
+    "index": 0,
+    "asin": "s1",
+    "label": "negative",
+    "title": "Just great",
+    "text": "Love how it fell apart on day one. Really awesome.",
+    "llm_sentiment": "NEGATIVE",
+    "llm_emotion": "anger",
+    "raw": "NEGATIVE anger",
+    "latency_s": 1.4
+  },
+  {
+    "index": 1,
+    "asin": "s2",
+    "label": "positive",
+    "title": "",
+    "text": "Not bad at all for the price. Gets the job done.",
+    "llm_sentiment": "POSITIVE",
+    "llm_emotion": "trust",
+    "raw": "POSITIVE trust",
+    "latency_s": 0.8
+  },
+  {
+    "index": 2,
+    "asin": "s3",
+    "label": "negative",
+    "title": "Disgusting",
+    "text": "This is the worst thing I have ever bought. If I could give zero stars I would.",
+    "llm_sentiment": "NEGATIVE",
+    "llm_emotion": "disgust",
+    "raw": "NEGATIVE disgust",
+    "latency_s": 0.5
+  },
+  {
+    "index": 3,
+    "asin": "s4",
+    "label": "positive",
+    "title": "Wow",
+    "text": "Honestly didn't expect much but this exceeded every expectation. Buying another one.",
+    "llm_sentiment": "POSITIVE",
+    "llm_emotion": "joy",
+    "raw": "POSITIVE joy",
+    "latency_s": 0.8
+  },
+  {
+    "index": 4,
+    "asin": "s5",
+    "label": "negative",
+    "title": "Meh",
+    "text": "Arrived used and dirty even though it says new. Not happy at all.",
+    "llm_sentiment": "NEGATIVE",
+    "llm_emotion": "anger",
+    "raw": "NEGATIVE anger",
+    "latency_s": 0.8
+  },
+  {
+    "index": 5,
+    "asin": "s6",
+    "label": "positive",
+    "title": "Um...",
+    "text": "It's fine. I mean it works. Whatever.",
+    "llm_sentiment": "NEGATIVE",
+    "llm_emotion": "disgust",
+    "raw": "NEGATIVE disgust",
+    "latency_s": 2.1
+  },
+  {
+    "index": 6,
+    "asin": "s7",
+    "label": "negative",
+    "title": "Sarcastic title",
+    "text": "Yeah because who doesn't love a product that breaks during the first use. 10/10 recommend.",
+    "llm_sentiment": "NEGATIVE",
+    "llm_emotion": "anger",
+    "raw": "NEGATIVE anger",
+    "latency_s": 1.0
+  },
+  {
+    "index": 7,
+    "asin": "s8",
+    "label": "positive",
+    "title": "Loved it",
+    "text": "I cannot swim but I tried anyway.",
+    "llm_sentiment": "POSITIVE",
+    "llm_emotion": "joy",
+    "raw": "POSITIVE joy",
+    "latency_s": 0.7
+  },
+  {
+    "index": 8,
+    "asin": "s9",
+    "label": "positive",
+    "title": "Neutral filter test",
+    "text": "It is what it is. Nothing more to say about the thing I got in the mail.",
+    "llm_sentiment": "NEGATIVE",
+    "llm_emotion": "disgust",
+    "raw": "NEGATIVE disgust",
+    "latency_s": 3.4
+  },
+  {
+    "index": 9,
+    "asin": "s10",
+    "label": "negative",
+    "title": "Mixed",
+    "text": "Shipping was super fast! Unfortunately the product itself exploded in my hands.",
+    "llm_sentiment": "NEGATIVE",
+    "llm_emotion": "anger",
+    "raw": "NEGATIVE anger",
+    "latency_s": 1.1
+  },
+  {
+    "index": 10,
+    "asin": "s11",
+    "label": "negative",
+    "title": "Grrr",
+    "text": "not good. not good. broken broken broken",
+    "llm_sentiment": "NEGATIVE",
+    "llm_emotion": "anger",
+    "raw": "NEGATIVE anger",
+    "latency_s": 0.8
+  },
+  {
+    "index": 11,
+    "asin": "s12",
+    "label": "positive",
+    "title": "",
+    "text": "\ud83d\ude0d\ud83d\ude0d\ud83d\ude0d",
+    "llm_sentiment": "POSITIVE",
+    "llm_emotion": "joy",
+    "raw": "POSITIVE joy",
+    "latency_s": 0.6
+  },
+  {
+    "index": 12,
+    "asin": "s13",
+    "label": "negative",
+    "title": "",
+    "text": "\ud83d\udca9",
+    "llm_sentiment": "NEGATIVE",
+    "llm_emotion": "disgust",
+    "raw": "NEGATIVE disgust",
+    "latency_s": 0.7
+  },
+  {
+    "index": 13,
+    "asin": "s14",
+    "label": "positive",
+    "title": "pretty good",
+    "text": "Good value. Would buy again. Shipping took a while though.",
+    "llm_sentiment": "POSITIVE",
+    "llm_emotion": "trust",
+    "raw": "POSITIVE trust",
+    "latency_s": 1.8
+  },
+  {
+    "index": 14,
+    "asin": "s15",
+    "label": "negative",
+    "title": "",
+    "text": "Broke after 3 months, customer service refused to help me get a refund. Frustrated with this brand.",
+    "llm_sentiment": "NEGATIVE",
+    "llm_emotion": "anger",
+    "raw": "NEGATIVE anger",
+    "latency_s": 0.7
+  }
+]
