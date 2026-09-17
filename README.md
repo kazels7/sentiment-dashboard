@@ -5,6 +5,14 @@ LLM via an OpenAI-compatible endpoint to classify each review's **title + text**
 as **positive** or **negative**, then scores the predictions against the
 star-rating ground truth.
 
+## Preview
+
+![Sentiment classifier dashboard](screenshots/dashboard_3class.png)
+
+The interactive 3-class evaluation dashboard (150 balanced reviews: 50 POS / 50
+NEU / 50 NEG), rendered live from
+`results/spot_check_3class/dashboard_standalone.html`.
+
 ## Data
 
 Source: [Amazon Reviews '23](https://amazon-reviews-2023.github.io) — category
