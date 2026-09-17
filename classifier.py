@@ -1,15 +1,15 @@
 #!/usr/bin/env python3
 """
-classifier.py — Zero-shot 3-class sentiment classifier for Amazon reviews.
+classifier.py — Zero-shot binary sentiment classifier for Amazon reviews.
 
 For every review in the sample it sends the review *title + text* to an
 OpenAI-compatible chat-completions endpoint and asks the LLM to return
-POSITIVE, NEUTRAL, or NEGATIVE plus a primary emotion.
+POSITIVE or NEGATIVE.
 
-Label mapping:
-  rating >= 4  ->  POSITIVE
-  rating == 3  ->  NEUTRAL
-  rating <= 2  ->  NEGATIVE
+Ground-truth labelling (per the assignment):
+  rating >= 4  ->  positive
+  rating <= 2  ->  negative
+  rating == 3  ->  dropped (not present in subsample)
 
 Endpoint configuration (all optional; resolved in this order):
   1. CLI flags   --base-url / --model / --api-key
@@ -86,9 +86,9 @@ def resolve_config(args) -> dict:
 # --------------------------------------------------------------------------
 # Prompt
 # --------------------------------------------------------------------------
-CLASSIFIER_PROMPT = """Classify sentiment: POSITIVE (4-5 stars, happy), NEUTRAL (3 stars, mixed/okay), or NEGATIVE (1-2 stars, unhappy). Also name primary emotion from: anger, anticipation, disgust, fear, joy, sadness, surprise, trust.
+CLASSIFIER_PROMPT = """Classify sentiment: POSITIVE (4-5 stars, happy) or NEGATIVE (1-2 stars, unhappy).
 
-Format: SENTIMENT|EMOTION
+Format: SENTIMENT
 
 Title: {title}
 Text: {text}
@@ -96,8 +96,8 @@ Text: {text}
 Output:"""
 
 
-def classify_review(client: OpenAI, model: str, title: str, text: str, timeout: float = 30.0) -> tuple[str, str, float]:
-    """Send one review to the LLM. Returns (sentiment, emotion, latency_s)."""
+def classify_review(client: OpenAI, model: str, title: str, text: str, timeout: float = 30.0) -> tuple[str, float]:
+    """Send one review to the LLM. Returns (sentiment, latency_s)."""
     prompt = CLASSIFIER_PROMPT.format(title=title or "", text=text)
     start = time.time()
     try:
@@ -110,22 +110,18 @@ def classify_review(client: OpenAI, model: str, title: str, text: str, timeout: 
         )
         raw = resp.choices[0].message.content.strip()
         latency = time.time() - start
-        # Parse SENTIMENT|EMOTION (handle any casing)
-        parts = raw.split("|")
-        if len(parts) == 2:
-            sentiment = parts[0].strip().upper()
-            emotion = parts[1].strip().lower()
-            if sentiment in ("POSITIVE", "NEUTRAL", "NEGATIVE") and emotion:
-                return sentiment, emotion, latency
+        # Parse single token sentiment
+        upper_raw = raw.upper().strip()
+        if upper_raw in ("POSITIVE", "NEGATIVE"):
+            return upper_raw, latency
         # Fallback: try to extract sentiment keyword
-        upper_raw = raw.upper()
-        for keyword in ("POSITIVE", "NEUTRAL", "NEGATIVE"):
+        for keyword in ("POSITIVE", "NEGATIVE"):
             if keyword in upper_raw:
-                return keyword, emotion if len(parts) == 2 else "unknown", latency
-        return "UNKNOWN", "unknown", latency
+                return keyword, latency
+        return "UNKNOWN", latency
     except Exception as e:
         latency = time.time() - start
-        return "ERROR", "error", latency
+        return "ERROR", latency
 
 
 # --------------------------------------------------------------------------
@@ -181,7 +177,7 @@ def compute_metrics(predictions: list, labels: list) -> dict:
 # --------------------------------------------------------------------------
 def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("--sample", default="data/balanced_3class.jsonl", help="Input JSONL file")
+    parser.add_argument("--sample", default="data/subsample.jsonl", help="Input JSONL file")
     parser.add_argument("--max-reviews", type=int, default=None, help="Limit to N reviews")
     parser.add_argument("--base-url", default=None)
     parser.add_argument("--model", default=None)
@@ -218,10 +214,10 @@ def main() -> None:
         title = rev.get("title", "")
         text = rev.get("text", "")
 
-        prediction, emotion, latency = classify_review(client, cfg["model"], title, text, args.timeout)
+        prediction, latency = classify_review(client, cfg["model"], title, text, args.timeout)
         latencies.append(latency)
 
-        # Ground truth prediction matches the label
+        # Ground truth: label is already "positive" or "negative"
         gt_sentiment = label.upper()
 
         sentiments.append(prediction)
@@ -235,10 +231,9 @@ def main() -> None:
             "text": text,
             "ground_truth_sentiment": gt_sentiment,
             "predicted_sentiment": prediction,
-            "emotion": emotion,
             "correct": prediction == gt_sentiment,
             "latency_s": round(latency, 2),
-            "raw": f"{prediction}|{emotion}",
+            "raw": prediction,
         })
 
         if i % 25 == 0:
